@@ -2,7 +2,7 @@ from database import DB
 from utils import menu_opcoes
 
 
-class Login_Manager:
+class LoginManager:
 
     usuario_atual = None
 

@@ -1,6 +1,6 @@
 from database import DB
 from registro import Credenciamento
-from login import Login_Manager
+from login import LoginManager
 from utils import menu_opcoes
 
 
