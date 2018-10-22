@@ -1,4 +1,4 @@
-from redesocial.utils import menu_opcoes
+from redesocial.utils import menu_opcoes, imagem_blob
 from redesocial import State
 from PIL import Image
 
@@ -36,7 +36,7 @@ class Credenciamento:
 
             opcoes[opcao][1]()
 
-        # TODO add sql queries!
+        img_blob = imagem_blob(cls.novo_usuario['imagem'])
         print('Usuário cadastrado!')
 
     @classmethod
