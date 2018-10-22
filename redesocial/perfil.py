@@ -11,8 +11,8 @@ class Perfil():
     def __init__(cls, user):
         if type(user) == int:
             id_user = user
-            cls.DB.cursor.execute(f'SELECT * FROM tUser WHERE id_user = {id_user}')
-            cls.owner_user = cls.DB.fetchone()
+            DB.cursor.execute(f'SELECT * FROM tUser WHERE id_user = {id_user}')
+            cls.owner_user = DB.fetchone()
         elif type(user) == dict:
             cls.owner_user = user
 

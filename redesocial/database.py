@@ -6,13 +6,13 @@ class DB:
     cursor = None
 
     @classmethod
-    def __init__(self):
-        if self.connection is None or self.cursor is None:
-            self.connection = pymysql.connect(
+    def __init__(cls):
+        if cls.connection is None or cls.cursor is None:
+            cls.connection = pymysql.connect(
                 host='127.0.0.1',
                 db='myface_schema',
                 user='myfaceAdm',
                 password='myfaceAdm',
                 cursorclass=pymysql.cursors.DictCursor
             )
-            self.cursor = self.connection.cursor()
+            cls.cursor = cls.connection.cursor()
