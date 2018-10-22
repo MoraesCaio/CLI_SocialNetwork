@@ -9,14 +9,11 @@ class MenuInicial():
 
     @classmethod
     def executar(cls):
-        login_manager = LoginManager()
-        credenciamento = Credenciamento()
-        menu_principal = MenuPrincipal()
 
         while True:
             opcoes = [['Sair', None],
-                      ['Registrar', credenciamento.registrar],
-                      ['Login', login_manager.login]]
+                      ['Registrar', Credenciamento.registrar],
+                      ['Login', LoginManager.login]]
 
             opcao = menu_opcoes('MENU INICIAL', opcoes)
 
@@ -26,4 +23,4 @@ class MenuInicial():
             opcoes[opcao][1]()
 
             if State.usuario_atual:
-                menu_principal.executar()
+                MenuPrincipal.executar()

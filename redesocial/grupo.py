@@ -5,15 +5,14 @@ from redesocial.utils import menu_opcoes, ver_imagem
 
 class Grupo():
 
-    db = DB()
     grupo = None
 
     @classmethod
     def __init__(cls, grupo):
         if type(grupo) == int:
             id_group = grupo
-            cls.db.cursor.execute(f'SELECT * FROM tUser WHERE id_group = {id_group}')
-            cls.grupo = cls.db.fetchone()
+            cls.DB.cursor.execute(f'SELECT * FROM tUser WHERE id_group = {id_group}')
+            cls.grupo = cls.DB.fetchone()
         elif type(grupo) == dict:
             cls.grupo = grupo
 

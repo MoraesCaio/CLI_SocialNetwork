@@ -32,9 +32,8 @@ class MenuPrincipal():
 
     @classmethod
     def ver_lista_usuarios(cls):
-        db = DB()
-        db.cursor.execute(f'SELECT name, city FROM tUser WHERE id_user != {State.usuario_atual["id_user"]}')
-        users = db.cursor.fetchall()
+        DB.cursor.execute(f'SELECT name, city FROM tUser WHERE id_user != {State.usuario_atual["id_user"]}')
+        users = DB.cursor.fetchall()
 
         opcoes_usuarios = [['Cancelar']] + [[f'{user["name"]}, {user["city"]}'] for user in users]
 

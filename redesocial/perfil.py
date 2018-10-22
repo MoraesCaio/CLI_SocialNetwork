@@ -5,15 +5,14 @@ from redesocial.utils import menu_opcoes, ver_imagem
 
 class Perfil():
 
-    db = DB()
     owner_user = None
 
     @classmethod
     def __init__(cls, user):
         if type(user) == int:
             id_user = user
-            cls.db.cursor.execute(f'SELECT * FROM tUser WHERE id_user = {id_user}')
-            cls.owner_user = cls.db.fetchone()
+            cls.DB.cursor.execute(f'SELECT * FROM tUser WHERE id_user = {id_user}')
+            cls.owner_user = cls.DB.fetchone()
         elif type(user) == dict:
             cls.owner_user = user
 

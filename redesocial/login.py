@@ -7,9 +7,8 @@ class LoginManager:
 
     @classmethod
     def login(cls):
-        db = DB()
-        db.cursor.execute('SELECT name, city FROM tUser')
-        users = db.cursor.fetchall()
+        DB.cursor.execute('SELECT name, city FROM tUser')
+        users = DB.cursor.fetchall()
 
         opcoes = [['Cancelar']] + [[f'{user["name"]}, {user["city"]}'] for user in users]
 
@@ -19,12 +18,12 @@ class LoginManager:
             return
         else:
 
-            db.cursor.execute(f'SELECT * FROM tUser WHERE id_user={opcao}')
+            DB.cursor.execute(f'SELECT * FROM tUser WHERE id_user={opcao}')
 
             if State.usuario_atual is None:
-                State.usuario_atual = db.cursor.fetchone()
+                State.usuario_atual = DB.cursor.fetchone()
             else:
-                new_login = db.cursor.fetchone()
+                new_login = DB.cursor.fetchone()
                 opcao = input(f'Você já está logado como {State.usuario_atual["name"]}. Deseja logar como {new_login["name"]}? [S/n]: ')
 
                 if opcao.lower() != 'n':
