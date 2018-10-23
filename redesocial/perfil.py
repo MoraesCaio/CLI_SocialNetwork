@@ -38,7 +38,7 @@ class Perfil():
         DB.cursor.execute(f'''
             -- Os convites de amizade confirmados que essa pessoa fez
             SELECT
-                tUser.name, tUser.city
+                tUser.id_user, tUser.name, tUser.city
             FROM
                 rUser_User
             INNER JOIN
@@ -54,7 +54,7 @@ class Perfil():
 
             -- Os convites de amizade que essa pessoa aceitou
             SELECT
-                tUser.name, tUser.city
+                tUser.id_user, tUser.name, tUser.city
             FROM
                 rUser_User
             INNER JOIN
@@ -69,9 +69,101 @@ class Perfil():
         amigos = DB.cursor.fetchall()
 
         if amigos:
-            print('Amigos:')
-            for amigo in amigos:
-                print(f'''-> {amigo['name']}, de {amigo['city']}''')
+            opcoes = [['Cancelar']] + [[f'''{amigo['name']}, de {amigo['city']}'''] for amigo in amigos]
+            opcao = menu_opcoes('AMIGOS', opcoes)
+            if opcao != 0:
+                # Ver status do usuário selecionado com o usuário logado
+                DB.cursor.execute(f'''
+                    -- Lado esquerdo do relacionamento
+                    SELECT
+                        *
+                    FROM
+                        rUser_User
+                    WHERE
+                        id_user_from = {amigos[opcao - 1]['id_user']}
+                    AND
+                        id_user_to = {State.usuario_atual['id_user']}
+                    UNION
+
+                    -- Lado direito do relacionamento
+                    SELECT
+                        *
+                    FROM
+                        rUser_User
+                    WHERE
+                        id_user_to = {amigos[opcao - 1]['id_user']}
+                    AND
+                        id_user_from = {State.usuario_atual['id_user']}
+
+                    ''')
+                status_dos_usuarios = DB.cursor.fetchone()
+
+                opcoes = [
+                        ['CANCELAR'],
+                        ['VISITAR PERFIL'],
+                        ['SOLICITAR AMIZADE'] if not status_dos_usuarios else ['DESFAZER AMIZADE'],
+                        ['BLOQUEAR']
+                        ]
+                opcao_usuario = menu_opcoes(f'''INTERAGIR COM {amigos[opcao - 1]['name']}''', opcoes)
+                if opcao_usuario != 0:
+                    if opcao_usuario == 1:
+                        pass # TODO: visitar perfil
+                    elif opcao_usuario == 2:
+                        if not status_dos_usuarios:
+                            # Solicitar amizade
+                            DB.cursor.execute(f'''
+                                INSERT INTO
+                                    rUser_User(id_user_from, id_user_to, status)
+                                VALUES
+                                    ({State.usuario_atual['id_user']}, {amigos[opcao - 1]['id_user']}, 0)
+                            ''')
+                            print('Amizade solicitada!')
+                        else:
+                            # Desfazer amizade
+                            DB.cursor.execute(f'''
+                                DELETE FROM
+                                    rUser_user
+                                WHERE (
+                                    id_user_from = {State.usuario_atual['id_user']}
+                                AND
+                                    id_user_to = {amigos[opcao - 1]['id_user']}
+                                )
+                                OR (
+                                     id_user_to = {State.usuario_atual['id_user']}
+                                AND
+                                    id_user_from = {amigos[opcao - 1]['id_user']}
+                                )
+                            ''')
+                            print('Amizade desfeita.')
+                    elif opcao_usuario == 3:
+                        if status_dos_usuarios:
+                            # Bloqueio quando os usuários já são amigos
+                            DB.cursor.execute(f'''
+                                UPDATE
+                                    rUser_User
+                                SET
+                                    status = 2
+                                WHERE (
+                                    id_user_from = {State.usuario_atual['id_user']}
+                                AND
+                                    id_user_to = {amigos[opcao - 1]['id_user']}
+                                )
+                                OR (
+                                     id_user_to = {State.usuario_atual['id_user']}
+                                AND
+                                    id_user_from = {amigos[opcao - 1]['id_user']}
+                                )
+                                ''')
+                        else:
+                            # Bloqueio quando não sao amigos
+                            DB.cursor.execute(f'''
+                            INSERT INTO
+                                rUser_User(id_user_from, id_user_to, status)
+                            VALUES
+                                ({State.usuario_atual['id_user']}, {amigos[opcao - 1]['id_user']}, 2)
+                            ''')
+        else:
+            print('Esse usuário não tem amigos.')
 
     @classmethod
     def ver_grupos(cls):
