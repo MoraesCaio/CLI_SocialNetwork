@@ -80,7 +80,7 @@ def create_tables():
         text VARCHAR(512) NOT NULL,
         PRIMARY KEY (id_comment),
         FOREIGN KEY (id_user) REFERENCES tUser(id_user),
-        FOREIGN KEY (id_post) REFERENCES tPost(id_post)
+        FOREIGN KEY (id_post) REFERENCES tPost(id_post) ON DELETE CASCADE
     );''')
 
     DB.cursor.execute('''CREATE TABLE IF NOT EXISTS tReply(
@@ -90,7 +90,7 @@ def create_tables():
         text VARCHAR(512) NOT NULL,
         PRIMARY KEY (id_reply),
         FOREIGN KEY (id_user) REFERENCES tUser(id_user),
-        FOREIGN KEY (id_comment) REFERENCES tComment(id_comment)
+        FOREIGN KEY (id_comment) REFERENCES tComment(id_comment) ON DELETE CASCADE
     );''')
 
     DB.cursor.execute('''CREATE TABLE IF NOT EXISTS rUser_User(
