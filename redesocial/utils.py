@@ -30,7 +30,7 @@ def menu_opcoes(titulo, opcoes):
 def ver_imagem(entidade):
     tmp_file = 'tmp.jpg'
     with open(tmp_file, 'wb') as f:
-        f.write(base64.b64decode(entidade['img']))
+        f.write(entidade['img'])
     Image.open(tmp_file).show()
     os.remove(tmp_file)
 
@@ -38,5 +38,5 @@ def ver_imagem(entidade):
 def imagem_blob(path_imagem):
     blob = None
     with open(path_imagem, 'rb') as f:
-        blob = base64.b64encode(f.read())
+        blob = f.read()
     return blob

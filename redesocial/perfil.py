@@ -12,7 +12,7 @@ class Perfil():
         if type(user) == int:
             id_user = user
             DB.cursor.execute(f'SELECT * FROM tUser WHERE id_user = {id_user}')
-            cls.owner_user = DB.fetchone()
+            cls.owner_user = DB.cursor.fetchone()
         elif type(user) == dict:
             cls.owner_user = user
 
