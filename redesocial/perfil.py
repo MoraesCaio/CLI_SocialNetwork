@@ -12,7 +12,7 @@ class Perfil():
         if type(user) == int:
             id_user = user
             DB.cursor.execute(f'SELECT * FROM tUser WHERE id_user = {id_user}')
-            cls.owner_user = DB.fetchone()
+            cls.owner_user = DB.cursor.fetchone()
         elif type(user) == dict:
             cls.owner_user = user
 
@@ -22,8 +22,20 @@ class Perfil():
         print(f"Nome: {cls.owner_user['name']}")
         print(f"Cidade: {cls.owner_user['city']}")
 
-        cls.ver_amigos()
-        cls.ver_grupos()
+        opcoes = [
+            ['Voltar ao menu principal'],
+            ['Ver Amigos', cls.ver_amigos],
+            ['Ver Grupos', cls.ver_grupos],
+            ['Ver Mural', cls.ver_mural]
+            ]
+
+        if cls.owner_user['id_user'] == State.usuario_atual['id_user']:
+            # Dono do perfil está visualizando o próprio perfil
+            opcoes.append(['Ver Solicitações', cls.ver_solicitacoes])
+
+        opcao = menu_opcoes('OPÇÕES DO PERFIL', opcoes)
+        if opcao != 0:
+            opcoes[opcao][1]()
 
     @classmethod
     def configuracoes_conta(cls):
@@ -72,98 +84,143 @@ class Perfil():
             opcoes = [['Cancelar']] + [[f'''{amigo['name']}, de {amigo['city']}'''] for amigo in amigos]
             opcao = menu_opcoes('AMIGOS', opcoes)
             if opcao != 0:
-                # Ver status do usuário selecionado com o usuário logado
-                DB.cursor.execute(f'''
-                    -- Lado esquerdo do relacionamento
-                    SELECT
-                        *
-                    FROM
-                        rUser_User
-                    WHERE
-                        id_user_from = {amigos[opcao - 1]['id_user']}
-                    AND
-                        id_user_to = {State.usuario_atual['id_user']}
-                    UNION
-
-                    -- Lado direito do relacionamento
-                    SELECT
-                        *
-                    FROM
-                        rUser_User
-                    WHERE
-                        id_user_to = {amigos[opcao - 1]['id_user']}
-                    AND
-                        id_user_from = {State.usuario_atual['id_user']}
-
-                    ''')
-                status_dos_usuarios = DB.cursor.fetchone()
-
-                opcoes = [
-                        ['CANCELAR'],
-                        ['VISITAR PERFIL'],
-                        ['SOLICITAR AMIZADE'] if not status_dos_usuarios else ['DESFAZER AMIZADE'],
-                        ['BLOQUEAR']
-                        ]
-                opcao_usuario = menu_opcoes(f'''INTERAGIR COM {amigos[opcao - 1]['name']}''', opcoes)
-                if opcao_usuario != 0:
-                    if opcao_usuario == 1:
-                        pass # TODO: visitar perfil
-                    elif opcao_usuario == 2:
-                        if not status_dos_usuarios:
-                            # Solicitar amizade
-                            DB.cursor.execute(f'''
-                                INSERT INTO
-                                    rUser_User(id_user_from, id_user_to, status)
-                                VALUES
-                                    ({State.usuario_atual['id_user']}, {amigos[opcao - 1]['id_user']}, 0)
-                            ''')
-                            print('Amizade solicitada!')
-                        else:
-                            # Desfazer amizade
-                            DB.cursor.execute(f'''
-                                DELETE FROM
-                                    rUser_user
-                                WHERE (
-                                    id_user_from = {State.usuario_atual['id_user']}
-                                AND
-                                    id_user_to = {amigos[opcao - 1]['id_user']}
-                                )
-                                OR (
-                                     id_user_to = {State.usuario_atual['id_user']}
-                                AND
-                                    id_user_from = {amigos[opcao - 1]['id_user']}
-                                )
-                            ''')
-                            print('Amizade desfeita.')
-                    elif opcao_usuario == 3:
-                        if status_dos_usuarios:
-                            # Bloqueio quando os usuários já são amigos
-                            DB.cursor.execute(f'''
-                                UPDATE
-                                    rUser_User
-                                SET
-                                    status = 2
-                                WHERE (
-                                    id_user_from = {State.usuario_atual['id_user']}
-                                AND
-                                    id_user_to = {amigos[opcao - 1]['id_user']}
-                                )
-                                OR (
-                                     id_user_to = {State.usuario_atual['id_user']}
-                                AND
-                                    id_user_from = {amigos[opcao - 1]['id_user']}
-                                )
-                                ''')
-                        else:
-                            # Bloqueio quando não sao amigos
-                            DB.cursor.execute(f'''
-                            INSERT INTO
-                                rUser_User(id_user_from, id_user_to, status)
-                            VALUES
-                                ({State.usuario_atual['id_user']}, {amigos[opcao - 1]['id_user']}, 2)
-                            ''')
+                cls.interagir_com_usuario(amigos[opcao - 1]['id_user'])
         else:
             print('Esse usuário não tem amigos.')
+
+    @classmethod
+    def interagir_com_usuario(cls, id_interagido):
+        # Ver qual o relacionamento do usuário interagido com o usuário logado
+        print(f'id interagido:{id_interagido}')
+        DB.cursor.execute(f'''
+            -- Lado esquerdo do relacionamento
+            SELECT
+                *
+            FROM
+                rUser_User
+            WHERE
+                id_user_from = {id_interagido}
+            AND
+                id_user_to = {State.usuario_atual['id_user']}
+            UNION
+
+            -- Lado direito do relacionamento
+            SELECT
+                *
+            FROM
+                rUser_User
+            WHERE
+                id_user_to = {id_interagido}
+            AND
+                id_user_from = {State.usuario_atual['id_user']}
+
+            ''')
+        status_dos_usuarios = DB.cursor.fetchone()
+
+        if not status_dos_usuarios:
+            # Não existe relacionamento entre os usuários
+            opcao_de_amizade = 'Solicitar Amizade'
+        else:
+            # Já existe algum relacionamento entre os usuários
+            if status_dos_usuarios['status'] == 0:
+                opcao_de_amizade = 'Desfazer Solicitação de Amizade'
+            elif status_dos_usuarios['status'] == 1:
+                opcao_de_amizade = 'Desfazer Amizade'
+            elif status_dos_usuarios['status'] == 2:
+                opcao_de_amizade = 'Desbloquear'
+
+        opcoes = [
+            ['Cancelar'],
+            ['Visitar Perfil'],
+            [opcao_de_amizade]
+            ]
+
+        # Opção de bloquear não aparece se o usuário já está bloqueado
+        if (status_dos_usuarios and status_dos_usuarios['status'] != 2) or (
+                not status_dos_usuarios):
+                opcoes.append(['Bloquear'])
+
+        opcao_usuario = menu_opcoes(f'''INTERAGIR COM USUÁRIO''', opcoes)
+        if opcao_usuario != 0:
+            if opcao_usuario == 1:
+                Perfil(id_interagido).ver_menu()
+            elif opcao_usuario == 2:
+                if not status_dos_usuarios:
+                    # Solicitar amizade
+                    DB.cursor.execute(f'''
+                        INSERT INTO
+                            rUser_User(id_user_from, id_user_to, status)
+                        VALUES
+                            ({State.usuario_atual['id_user']}, {id_interagido}, 0)
+                    ''')
+                    print(f'{State.usuario_atual["id_user"]} solicitou à {"id_interagido"}')
+                    DB.connection.commit()
+                    print('Amizade solicitada!')
+                elif status_dos_usuarios['status'] == 1:
+                    # Desfazer amizade
+                    DB.cursor.execute(f'''
+                        DELETE FROM
+                            rUser_user
+                        WHERE (
+                            id_user_from = {State.usuario_atual['id_user']}
+                        AND
+                            id_user_to = {id_interagido}
+                        )
+                        OR (
+                             id_user_to = {State.usuario_atual['id_user']}
+                        AND
+                            id_user_from = {id_interagido}
+                        )
+                    ''')
+                    DB.connection.commit()
+                    print('Amizade desfeita.')
+                else:
+                    # Desbloquear usuário
+                    DB.cursor.execute(f'''
+                        DELETE FROM
+                            rUser_user
+                        WHERE (
+                            id_user_from = {State.usuario_atual['id_user']}
+                        AND
+                            id_user_to = {id_interagido}
+                        )
+                        OR (
+                             id_user_to = {State.usuario_atual['id_user']}
+                        AND
+                            id_user_from = {id_interagido}
+                        )
+                    ''')
+                    DB.connection.commit()
+                    print('Usuário desbloqueado.')
+            elif opcao_usuario == 3:
+                if status_dos_usuarios:
+                    # Bloqueio quando os usuários já são amigos
+                    DB.cursor.execute(f'''
+                        UPDATE
+                            rUser_User
+                        SET
+                            status = 2
+                        WHERE (
+                            id_user_from = {State.usuario_atual['id_user']}
+                        AND
+                            id_user_to = {id_interagido}
+                        )
+                        OR (
+                             id_user_to = {State.usuario_atual['id_user']}
+                        AND
+                            id_user_from = {id_interagido}
+                        )
+                        ''')
+                else:
+                    # Bloqueio quando não sao amigos
+                    DB.cursor.execute(f'''
+                    INSERT INTO
+                        rUser_User(id_user_from, id_user_to, status)
+                    VALUES
+                        ({State.usuario_atual['id_user']}, {id_interagido}, 2)
+                    ''')
+                DB.connection.commit()
+                print('Usuário bloqueado.')
 
     @classmethod
     def ver_grupos(cls):
@@ -182,9 +239,10 @@ class Perfil():
         grupos = DB.cursor.fetchall()
 
         if grupos:
-            print('Grupos:')
-            for grupo in grupos:
-                print(f'''-> {grupo['name']}''')
+            opcoes = [['Voltar ao menu principal']] + [[f'{grupo["name"]}'] for grupo in grupos]
+            # TODO: tratar opções do grupo
+        else:
+            print('Esse usuário não está em nenhum grupo.')
 
     @classmethod
     def ver_solicitacoes(cls):
@@ -203,12 +261,93 @@ class Perfil():
         solicitacoes = DB.cursor.fetchall()
 
         if solicitacoes:
-            for solicitacao in solicitacoes:
-                print(solicitacao)
+            opcoes = [['Cancelar']] + [[f'{solicitacao["name"]}'] for solicitacao in solicitacoes]
+            opcao = menu_opcoes('INTERAGIR COM SOLICITAÇÃO', opcoes)
+
+            if opcao != 0:
+                aceita = menu_opcoes('ACEITAR SOLICITAÇÃO?', [['Cancelar'], ['Aceitar'], ['Rejeitar']])
+
+                if aceita == 1:
+                    DB.cursor.execute(f'''
+                        UPDATE
+                            rUser_User
+                        SET
+                            status = 1
+                        WHERE
+                            id_user_from = {solicitacoes[opcao - 1]['id_user']}
+                        AND
+                            id_user_to = {cls.owner_user['id_user']}
+                        ''')
+                    print('Solicitação aceita!')
+                    DB.connection.commit()
+                elif aceita == 2:
+                    DB.cursor.execute(f'''
+                        DELETE FROM
+                            rUser_User
+                        WHERE
+                            id_user_from = {solicitacoes[opcao - 1]['id_user']}
+                        AND
+                            id_user_to = {cls.owner_user['id_user']}
+                        AND
+                            status = 0
+                        ''')
+                    print('Solicitação recusada.')
+                    DB.connection.commit()
+        else:
+            print('Não há nenhuma solicitação para esse usuário.')
 
     @classmethod
     def ver_mural(cls):
-        pass
+        DB.cursor.execute(f'SELECT id_wall FROM tUser WHERE id_user = {cls.owner_user["id_user"]}')
+        id_wall = DB.cursor.fetchone()['id_wall']
+
+        DB.cursor.execute(f'''
+            SELECT
+                *
+            FROM
+                tPost
+            INNER JOIN
+                tUser
+            ON
+                tPost.id_user = tUser.id_user
+            WHERE
+                tPost.id_wall = {id_wall}
+            ''')
+        posts = DB.cursor.fetchall()
+
+        opcoes_postagem = [
+            ['Voltar ao menu principal'],
+            ['Criar postagem']
+            ] + [[f'-> {post["name"]}: {post["text"]}'] for post in posts]
+        opcao_postagem = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes_postagem)
+
+        if opcao_postagem == 1:
+            pass # TODO: criar postagem
+        elif opcao_postagem > 1:
+            # Interagir com uma postagem
+            post_interagido = posts[opcao_postagem - 2]
+
+            opcoes = [
+                ['Voltar ao menu principal'],
+                ['Ver comentários'],
+                ]
+            if post_interagido['id_user'] == State.usuario_atual['id_user'] or cls.owner_user['id_user'] == State.usuario_atual['id_user']:
+                opcoes.append(['Remover postagem'])
+
+            opcao = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes)
+
+            if opcao == 1:
+                pass # TODO: ver comentario
+            elif opcao == 2:
+                # Remover postagem
+                DB.cursor.execute(f'''
+                    DELETE FROM
+                        tPost
+                    WHERE
+                        id_post = {post_interagido['id_post']}
+                    ''')
+                print('Postagem removida.')
+                DB.connection.commit()
 
     @classmethod
     def criar_grupo(cls):
