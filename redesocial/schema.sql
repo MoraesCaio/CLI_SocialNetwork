@@ -43,7 +43,7 @@ CREATE TABLE tComment(
 	text VARCHAR(512) NOT NULL,
 	PRIMARY KEY (id_comment),
 	FOREIGN KEY (id_user) REFERENCES tUser(id_user),
-	FOREIGN KEY (id_post) REFERENCES tPost(id_post)
+	FOREIGN KEY (id_post) REFERENCES tPost(id_post) ON DELETE CASCADE
 );
 
 CREATE TABLE tReply(
@@ -53,7 +53,7 @@ CREATE TABLE tReply(
 	text VARCHAR(512) NOT NULL,
 	PRIMARY KEY (id_reply),
 	FOREIGN KEY (id_user) REFERENCES tUser(id_user),
-	FOREIGN KEY (id_comment) REFERENCES tComment(id_comment)
+	FOREIGN KEY (id_comment) REFERENCES tComment(id_comment) ON DELETE CASCADE
 );
 
 /* Relationships */
