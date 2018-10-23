@@ -337,7 +337,37 @@ class Perfil():
             opcao = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes)
 
             if opcao == 1:
-                pass # TODO: ver comentario
+                # Ver comentários
+                DB.cursor.execute(f'''
+                    SELECT
+                        *
+                    FROM
+                        tComment
+                    INNER JOIN
+                        tUser
+                    ON
+                        tComment.id_user = tUser.id_user
+                    WHERE
+                        tComment.id_post = {post_interagido['id_post']}
+                    ''')
+                comentarios = DB.cursor.fetchall()
+
+                opcoes = [['Cancelar'], ['Comentar']] + [[f'-> {comentario["name"]}: {comentario["text"]}'] for comentario in comentarios]
+                opcao = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
+
+                if opcao == 1:
+                    pass # TODO: postar comentario
+                elif opcao > 1:
+                    # Interagir com comentário
+                    opcoes = [['Cancelar'], ['Responder'], ['Ver respostas']]
+
+                    # Só quem fez o comentário ou o dono do perfil pode remove-lô
+                    if comentarios[opcao - 2]['id_user'] == State.usuario_atual['id_user'] or cls.owner_user['id_user'] == State.usuario_atual['id_user']:
+                        opcoes.append(['Remover comentário'])
+
+                    opcao_comentario = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
+                    # TODO: tratar opcao
+
             elif opcao == 2:
                 # Remover postagem
                 DB.cursor.execute(f'''
