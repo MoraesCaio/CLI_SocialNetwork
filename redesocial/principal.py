@@ -50,7 +50,6 @@ class MenuPrincipal():
             if not opcao:
                 return
             else:
-                # TODO
                 Perfil.interagir_com_usuario(users[opcao - 1]['id_user'])
                 return
 
