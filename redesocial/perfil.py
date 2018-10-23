@@ -366,7 +366,56 @@ class Perfil():
                         opcoes.append(['Remover comentário'])
 
                     opcao_comentario = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
-                    # TODO: tratar opcao
+                    if opcao_comentario == 1:
+                        pass # TODO: postar resposta
+                    elif opcao_comentario == 2:
+                        # Ver respostas
+                        DB.cursor.execute(f'''
+                            SELECT
+                                *
+                            FROM
+                                tReply
+                            INNER JOIN
+                                tUser
+                            ON
+                                tReply.id_user = tUser.id_user
+                            WHERE
+                                tReply.id_comment = {comentarios[opcao - 2]['id_comment']}
+                            ''')
+                        respostas = DB.cursor.fetchall()
+
+                        opcoes_resposta = [['Cancelar'], ['Responder']] + [[f'-> {resposta["name"]}: {resposta["text"]}'] for resposta in respostas]
+                        opcao_resposta = menu_opcoes('INTERAGIR COM RESPOSTA', opcoes_resposta)
+
+                        if opcao_resposta == 1:
+                            pass # TODO: responder
+                        elif opcao_resposta > 1:
+                            # Interagir com resposta
+                            opcoes = [['Cancelar']]
+
+                            # Só quem postou a resposta ou o dono do perfil pode remover
+                            if respostas[opcao_resposta - 2]['id_user'] == State.usuario_atual['id_user'] or cls.owner_user['id_user'] == State.usuario_atual['id_user']:
+                                opcoes.append(['Remover resposta'])
+
+                            if menu_opcoes('INTERAGIR COM RESPOSTA', opcoes) == 1:
+                                DB.cursor.execute(f'''
+                                    DELETE FROM
+                                        tReply
+                                    WHERE
+                                        id_reply = {respostas[opcao_resposta - 2]['id_reply']}
+                                    ''')
+                                print('Resposta removida.')
+                                DB.connection.commit()
+                    elif opcao_comentario == 3:
+                        # Remover comentário
+                        DB.cursor.execute(f'''
+                            DELETE FROM
+                                tComment
+                            WHERE
+                                id_comment = {comentarios[opcao - 2]['id_comment']}
+                            ''')
+                        print('Comentário removido.')
+                        DB.connection.commit()
 
             elif opcao == 2:
                 # Remover postagem
