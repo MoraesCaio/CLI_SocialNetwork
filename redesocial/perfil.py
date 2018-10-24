@@ -6,6 +6,7 @@ from redesocial.grupo import Grupo
 from redesocial.mural import Mural
 from PIL import Image
 
+
 class Perfil():
 
     owner_user = None
@@ -52,7 +53,7 @@ class Perfil():
             ['Voltar', None],
             ['Definir Visibilidade', cls.definir_visibilidade],
             ['Atualizar Nome', cls.atualizar_nome],
-            ['Atualizar Descrição', cls.atualizar_descrição],
+            ['Atualizar Descrição', cls.atualizar_cidade],
             ['Atualizar Imagem', cls.atualizar_imagem]
         ]
 
