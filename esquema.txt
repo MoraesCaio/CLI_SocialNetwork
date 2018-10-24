@@ -5,14 +5,14 @@
 
 ----------------------------------------
 
-( ) INICIAL
-    ( ) REGISTRAR
-        ( ) DEFINIR NOME
-        ( ) DEFINIR CIDADE
-        ( ) DEFINIR PATH DA FOTO
-    ( ) FAZER LOGIN
-        ( ) LISTA DE USUÁRIOS PARA LOGIN
-    ( ) CANCELAR
+(X) INICIAL
+    (X) REGISTRAR
+        (X) DEFINIR NOME
+        (X) DEFINIR CIDADE
+        (x) DEFINIR PATH DA FOTO
+    (X) FAZER LOGIN
+        (X) LISTA DE USUÁRIOS PARA LOGIN
+    (X) CANCELAR
 
 ( ) MENU PRINCIPAL
     (x) VER PERFIL
