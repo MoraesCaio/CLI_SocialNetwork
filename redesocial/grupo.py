@@ -367,12 +367,19 @@ class Grupo():
         opcoes_postagem = [
             ['Voltar ao menu principal'],
             ['Criar postagem']
-        ] + [[f'-> {post["name"]}: {post["text"]}'] for post in posts]
+        ]# + [[f'-> {post["name"]}: {post["text"]}'] for post in posts]
+
+        for post in posts:
+            if not cls.is_blocked_either(State.usuario_atual['id_user'], post['id_user']):
+                opcoes_postagem.append([f'-> {post["name"]}: {post["text"]}'])
+
         opcao_postagem = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes_postagem)
 
         if opcao_postagem == 1:
-            # TODO: Checar antes se o usuário tem permissão pra postar no grupo
-            Mural(cls.grupo['id_wall']).fazer_postagem()
+            if cls.eh_do_grupo():
+                Mural(cls.grupo['id_wall']).fazer_postagem()
+            else:
+                print('Você não faz parte desse grupo.')
         elif opcao_postagem > 1:
             # Interagir com uma postagem
             post_interagido = posts[opcao_postagem - 2]
@@ -402,12 +409,19 @@ class Grupo():
                     ''')
                 comentarios = DB.cursor.fetchall()
 
-                opcoes = [['Cancelar'], ['Comentar']] + [[f'-> {comentario["name"]}: {comentario["text"]}'] for comentario in comentarios]
+                opcoes = [['Cancelar'], ['Comentar']]# + [[f'-> {comentario["name"]}: {comentario["text"]}'] for comentario in comentarios]
+
+                for comentario in comentarios:
+                    if not cls.is_blocked_either(State.usuario_atual['id_user'], comentario['id_user']):
+                        opcoes_postagem.append([f'-> {comentario["name"]}: {comentario["text"]}'])
+
                 opcao = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
 
                 if opcao == 1:
-                    # TODO: Checar antes se o usuário tem permissão pra postar no grupo
-                    Mural(cls.grupo['id_wall']).fazer_comentario(post_interagido['id_post'])
+                    if cls.eh_do_grupo():
+                        Mural(cls.grupo['id_wall']).fazer_comentario(post_interagido['id_post'])
+                    else:
+                        print('Você não faz parte desse grupo.')
                 elif opcao > 1:
                     # Interagir com comentário
                     opcoes = [['Cancelar'], ['Ver respostas']]
@@ -433,12 +447,19 @@ class Grupo():
                             ''')
                         respostas = DB.cursor.fetchall()
 
-                        opcoes_resposta = [['Cancelar'], ['Responder']] + [[f'-> {resposta["name"]}: {resposta["text"]}'] for resposta in respostas]
+                        opcoes_resposta = [['Cancelar'], ['Responder']]# + [[f'-> {resposta["name"]}: {resposta["text"]}'] for resposta in respostas]
+
+                        for resposta in respostas:
+                            if not cls.is_blocked_either(State.usuario_atual['id_user'], resposta['id_user']):
+                                opcoes_postagem.append([f'-> {resposta["name"]}: {resposta["text"]}'])
+
                         opcao_resposta = menu_opcoes('INTERAGIR COM RESPOSTA', opcoes_resposta)
 
                         if opcao_resposta == 1:
-                            # TODO: Checar antes se o usuário tem permissão pra postar no grupo
-                            Mural(cls.grupo['id_wall']).fazer_resposta(comentarios[opcao - 2]['id_comment'])
+                            if cls.eh_do_grupo():
+                                Mural(cls.grupo['id_wall']).fazer_resposta(comentarios[opcao - 2]['id_comment'])
+                            else:
+                                print('Você não faz parte desse grupo.')
                         elif opcao_resposta > 1:
                             # Interagir com resposta
                             opcoes = [['Cancelar']]
@@ -494,3 +515,47 @@ class Grupo():
             ''')
 
         return True if DB.cursor.fetchone() else False
+
+    @classmethod
+    def eh_do_grupo(cls):
+        DB.cursor.execute(f'''
+            SELECT
+                status
+            FROM
+                rUser_Group
+            WHERE
+                id_user = {State.usuario_atual['id_user']}
+            AND
+                id_group = {cls.grupo['id_group']}
+            AND
+                (status = 1 OR status = 2)
+            ''')
+
+        return True if DB.cursor.fetchone() else False
+
+    @classmethod
+    def is_blocked_generic(cls, user_a, user_b):
+        '''Retorna se A bloqueou B.'''
+        DB.cursor.execute(f'''
+            SELECT
+                status
+            FROM
+                rUser_User
+            WHERE
+                id_user_from = {user_a}
+            AND
+                id_user_to = {user_b}
+            AND
+                status = 2
+            ''')
+        result = DB.cursor.fetchone()
+
+        return True if result else False
+
+    @classmethod
+    def is_blocked_either(cls, user_a, user_b):
+        '''Retorna se há um bloqueio entre A e B.'''
+        if cls.is_blocked_generic(user_a, user_b) or cls.is_blocked_generic(user_b, user_a):
+            return True
+        else:
+            return False

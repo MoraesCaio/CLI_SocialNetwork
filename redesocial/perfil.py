@@ -23,6 +23,11 @@ class Perfil():
     @classmethod
     def ver_menu(cls):
         print('\n---- PERFIL ----')
+
+        if cls.is_blocked():
+            print('Esse usuário te bloqueou.')
+            return
+
         print(f"Nome: {cls.owner_user['name']}")
         print(f"Cidade: {cls.owner_user['city']}")
 
@@ -183,7 +188,47 @@ class Perfil():
         amigos = DB.cursor.fetchall()
 
         if amigos:
-            opcoes = [['Cancelar']] + [[f'''{amigo['name']}, de {amigo['city']}'''] for amigo in amigos]
+            opcoes = [['Cancelar']]# + [[f'''{amigo['name']}, de {amigo['city']}'''] for amigo in amigos]
+
+            for amigo in amigos:
+                # Amigo só aparece se não tiver sido bloqueado pelo usuário logado.
+                if not cls.is_blocked_generic(State.usuario_atual['id_user'], amigo['id_user']):
+                    # Checagem se são amigos mútuos só acontece em perfil de outras pessoas
+                    if State.usuario_atual['id_user'] != cls.owner_user['id_user']:
+                        DB.cursor.execute(f'''
+                            SELECT
+                                status
+                            FROM
+                                rUser_User
+                            WHERE
+                                status = 1
+                            AND
+                                id_user_from = {State.usuario_atual['id_user']}
+                            AND
+                                id_user_to = {amigo['id_user']}
+
+                            UNION
+
+                            SELECT
+                                status
+                            FROM
+                                rUser_User
+                            WHERE
+                                status = 1
+                            AND
+                                id_user_to = {State.usuario_atual['id_user']}
+                            AND
+                                id_user_from = {amigo['id_user']}
+                            ''')
+                        mutuo = True if DB.cursor.fetchone() else False
+                    else:
+                        mutuo = False
+
+                    if mutuo:
+                        opcoes.append([f'''{amigo['name']}, de {amigo['city']} (AMIGO MÚTUO)'''])
+                    else:
+                        opcoes.append([f'''{amigo['name']}, de {amigo['city']}'''])
+
             opcao = menu_opcoes('AMIGOS', opcoes)
             if opcao != 0:
                 cls.interagir_com_usuario(amigos[opcao - 1]['id_user'])
@@ -232,9 +277,11 @@ class Perfil():
 
         opcoes = [
             ['Cancelar'],
-            ['Visitar Perfil'],
-            [opcao_de_amizade]
+            ['Visitar Perfil']
         ]
+
+        if not cls.is_blocked(user=id_interagido):
+            opcoes.append([opcao_de_amizade])
 
         # Opção de bloquear não aparece se o usuário já está bloqueado
         if (status_dos_usuarios and status_dos_usuarios['status'] != 2) or (
@@ -299,7 +346,9 @@ class Perfil():
                         UPDATE
                             rUser_User
                         SET
-                            status = 2
+                            status = 2,
+                            id_user_from = {State.usuario_atual['id_user']},
+                            id_user_to = {id_interagido}
                         WHERE (
                             id_user_from = {State.usuario_atual['id_user']}
                         AND
@@ -319,6 +368,23 @@ class Perfil():
                     VALUES
                         ({State.usuario_atual['id_user']}, {id_interagido}, 2)
                     ''')
+
+                # Remover postagens, comentários e respostas do usuário bloqueado
+                # TODO: consertar isso
+                """DB.cursor.execute(f'''
+                    DELETE FROM
+                        tPost
+                    WHERE (
+                        id_user = {State.usuario_atual['id_user']}
+                    AND
+                        id_wall = {cls.owner_user['id_wall']}
+                    ) OR (
+                        id_user = {cls.owner_user['id_user']}
+                    AND
+                        id_wall = {State.usuario_atual['id_wall']}
+                    )
+                    ''')"""
+
                 DB.connection.commit()
                 print('Usuário bloqueado.')
 
@@ -339,7 +405,32 @@ class Perfil():
         grupos = DB.cursor.fetchall()
 
         if grupos:
-            opcoes = [['Voltar ao menu principal']] + [[f'{grupo["name"]}'] for grupo in grupos]
+            opcoes = [['Voltar ao menu principal']]# + [[f'{grupo["name"]}'] for grupo in grupos]
+
+            for grupo in grupos:
+                # Checagem de grupo mútuo só em perfil de outras pessoas
+                if State.usuario_atual['id_user'] != cls.owner_user['id_user']:
+                    DB.cursor.execute(f'''
+                        SELECT
+                            status
+                        FROM
+                            rUser_Group
+                        WHERE
+                            (status = 1 OR status = 2)
+                        AND
+                            id_group = {grupo['id_group']}
+                        AND
+                            id_user = {State.usuario_atual['id_user']}
+                        ''')
+                    mutuo = True if DB.cursor.fetchone() else False
+                else:
+                    mutuo = False
+
+                if mutuo:
+                    opcoes.append([f'{grupo["name"]} (GRUPO MÚTUO)'])
+                else:
+                    opcoes.append([f'{grupo["name"]}'])
+
             opcao = menu_opcoes('INTERAGIR COM GRUPO', opcoes)
 
             if opcao != 0:
@@ -360,6 +451,8 @@ class Perfil():
                 rUser_user.id_user_from = tUser.id_user
             WHERE
                 id_user_to = {cls.owner_user['id_user']}
+            AND
+                status = 0
             ''')
         solicitacoes = DB.cursor.fetchall()
 
@@ -418,7 +511,12 @@ class Perfil():
         opcoes_postagem = [
             ['Voltar ao menu principal'],
             ['Criar postagem']
-        ] + [[f'-> {post["name"]}: {post["text"]}'] for post in posts]
+        ]# + [[f'-> {post["name"]}: {post["text"]}'] for post in posts]
+
+        for post in posts:
+            if not cls.is_blocked_either(State.usuario_atual['id_user'], post['id_user']):
+                opcoes_postagem.append([f'-> {post["name"]}: {post["text"]}'])
+
         opcao_postagem = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes_postagem)
 
         if opcao_postagem == 1:
@@ -452,7 +550,12 @@ class Perfil():
                     ''')
                 comentarios = DB.cursor.fetchall()
 
-                opcoes = [['Cancelar'], ['Comentar']] + [[f'-> {comentario["name"]}: {comentario["text"]}'] for comentario in comentarios]
+                opcoes = [['Cancelar'], ['Comentar']]# + [[f'-> {comentario["name"]}: {comentario["text"]}'] for comentario in comentarios]
+
+                for comentario in comentarios:
+                    if not cls.is_blocked_either(State.usuario_atual['id_user'], comentario['id_user']):
+                        opcoes_postagem.append([f'-> {comentario["name"]}: {comentario["text"]}'])
+
                 opcao = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
 
                 if opcao == 1:
@@ -482,7 +585,12 @@ class Perfil():
                             ''')
                         respostas = DB.cursor.fetchall()
 
-                        opcoes_resposta = [['Cancelar'], ['Responder']] + [[f'-> {resposta["name"]}: {resposta["text"]}'] for resposta in respostas]
+                        opcoes_resposta = [['Cancelar'], ['Responder']]# + [[f'-> {resposta["name"]}: {resposta["text"]}'] for resposta in respostas]
+
+                        for resposta in respostas:
+                            if not cls.is_blocked_either(State.usuario_atual['id_user'], resposta['id_user']):
+                                opcoes_postagem.append([f'-> {resposta["name"]}: {resposta["text"]}'])
+
                         opcao_resposta = menu_opcoes('INTERAGIR COM RESPOSTA', opcoes_resposta)
 
                         if opcao_resposta == 1:
@@ -551,6 +659,41 @@ class Perfil():
                 return True
             else:
                 return False
+        else:
+            return False
+
+    @classmethod
+    def is_blocked(cls, user=None):
+        '''Retorna se o dono desse perfil bloqueou o usuário que está logado.'''
+        if not user:
+            user = cls.owner_user['id_user']
+
+        return cls.is_blocked_generic(user, State.usuario_atual['id_user'])
+
+    @classmethod
+    def is_blocked_generic(cls, user_a, user_b):
+        '''Retorna se A bloqueou B.'''
+        DB.cursor.execute(f'''
+            SELECT
+                status
+            FROM
+                rUser_User
+            WHERE
+                id_user_from = {user_a}
+            AND
+                id_user_to = {user_b}
+            AND
+                status = 2
+            ''')
+        result = DB.cursor.fetchone()
+
+        return True if result else False
+
+    @classmethod
+    def is_blocked_either(cls, user_a, user_b):
+        '''Retorna se há um bloqueio entre A e B.'''
+        if cls.is_blocked_generic(user_a, user_b) or cls.is_blocked_generic(user_b, user_a):
+            return True
         else:
             return False
 
