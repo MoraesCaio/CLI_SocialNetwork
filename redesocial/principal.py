@@ -63,4 +63,4 @@ class MenuPrincipal():
         opcao = menu_opcoes('INTERAGIR COM GRUPO', opcoes)
 
         if opcao != 0:
-            Grupo.interagir_com_grupo(grupos[opcao - 1]['id_group'])
+            Grupo(grupos[opcao - 1]['id_group']).ver_menu()

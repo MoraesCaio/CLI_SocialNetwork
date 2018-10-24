@@ -77,8 +77,8 @@ PERFIL
         ( ) DEFINIR PATH DA FOTO
 
 ( ) GRUPO
-    ( ) NOME
-    ( ) DESCRIÇÃO
+    (x) NOME
+    (x) DESCRIÇÃO
 
     ( ) CONFIGURAÇÕES DO GRUPO
         ( ) DEFINIR VISIBILIDADE
@@ -90,14 +90,14 @@ PERFIL
         ( ) ATUALIZAR FOTO (PILLOW SHOW)
 
     ( ) VER FOTO (PILLOW SHOW)
-    ( ) VER MEMBROS
+    (x) VER MEMBROS
         ( ) VISITAR PERFIL
         ( ) REMOVER (ADM)
         ( ) BANIR (ADM)
         ( ) REMOVER BANIMENTO (ADM)
         ( ) TORNAR ADM (ADM)
         ( ) REMOVER ADM (ADM)
-    ( ) VER SOLICITAÇÕES (DONO DO PERFIL)
+    (x) VER SOLICITAÇÕES (DONO DO PERFIL)
         ( ) VISITAR PERFIL
         ( ) ACEITAR
         ( ) REJEITAR

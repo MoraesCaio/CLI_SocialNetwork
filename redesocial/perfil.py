@@ -226,7 +226,7 @@ class Perfil():
     def ver_grupos(cls):
         DB.cursor.execute(f'''
             SELECT
-                tGroup.name, status
+                tGroup.name, status, tGroup.id_group
             FROM
                 rUser_Group
             INNER JOIN
@@ -243,7 +243,7 @@ class Perfil():
             opcao = menu_opcoes('INTERAGIR COM GRUPO', opcoes)
 
             if opcao != 0:
-                Grupo.interagir_com_grupo(grupos[opcao - 1]['id_group'])
+                Grupo(grupos[opcao - 1]['id_group']).ver_menu()
         else:
             print('Esse usuário não está em nenhum grupo.')
 
