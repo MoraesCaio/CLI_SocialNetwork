@@ -35,23 +35,24 @@ class Grupo():
                 AND
                     id_group = {cls.grupo['id_group']}
                 ''')
-            status = DB.cursor.fetchone()
+            inscricao = DB.cursor.fetchone()
 
             opcoes_grupo = [
                 ['Cancelar', None],
                 ['Ver foto', cls.ver_foto],
             ]
 
-            if not status:
+            if not inscricao:
                 opcoes_grupo.append(['Solicitar Entrada', cls.solicitar_entrada])
-            elif status['status'] == 0:
+            elif inscricao['status'] == 0:
                 opcoes_grupo.append(['Cancelar Solicitação', cls.cancelar_solicitacao])
-            elif cls.eh_visivel:
+            # membro ou adm
+            elif inscricao['status'] == 1 or inscricao['status'] == 2:
                 opcoes_grupo.append(['Ver Mural', cls.ver_mural])
                 opcoes_grupo.append(['Ver Membros', cls.ver_membros])
                 opcoes_grupo.append(['Sair do Grupo', cls.sair_grupo])
 
-            if cls.eh_adm():
+            if inscricao['status']:
                 opcoes_grupo.append(['Ver Solicitações', cls.ver_solicitacoes])
 
             opcao_grupo = menu_opcoes('INTERAGIR COM GRUPO', opcoes_grupo)
@@ -236,9 +237,7 @@ class Grupo():
             opcao_membro = menu_opcoes('INTERAGIR COM MEMBRO', opcoes_membro)
 
             if opcao_membro == 1:
-                # Visitar perfil
-                from redesocial.perfil import Perfil
-                Perfil(membros[opcao - 1]['id_user']).ver_menu()
+                cls.visitar_perfil(membros[opcao - 1])
 
             elif opcao_membro == 2:
                 # Remover
@@ -292,6 +291,11 @@ class Grupo():
                     ''')
                 DB.connection.commit()
                 print('Operação realizada.')
+
+    @classmethod
+    def visitar_perfil(cls, membro):
+        from redesocial.perfil import Perfil
+        Perfil(membro['id_user']).ver_menu()
 
     @classmethod
     def ver_solicitacoes(cls):
