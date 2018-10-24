@@ -157,18 +157,18 @@ class Grupo():
                 return
 
     @classmethod
-    def atualizar_cidade(cls):
-        cidade = input(f'Insira sua CIDADE com mais de 4 caracteres e menos de 255 caracteres. (ou Aperte ENTER para cancelar)')
+    def atualizar_descricao(cls):
+        descricao = input(f'Insira sua DESCRICAO DO GRUPO com mais de 4 caracteres e menos de 255 caracteres. (ou Aperte ENTER para cancelar)')
 
         while True:
-            if not len(cidade):
+            if not len(descricao):
                 return
-            elif len(cidade) >= 255 or len(cidade) < 4:
-                cidade = input(f'CIDADE inválida. Tente novamente. (ou Aperte ENTER para cancelar)')
+            elif len(descricao) >= 255 or len(descricao) < 4:
+                descricao = input(f'DESCRICAO DO GRUPO inválida. Tente novamente. (ou Aperte ENTER para cancelar)')
             else:
-                DB.cursor.execute("UPDATE tUser SET city=%s WHERE id_group=%s", (cidade, cls.grupo['id_group']))
+                DB.cursor.execute("UPDATE tGroup SET city=%s WHERE id_group=%s", (descricao, cls.grupo['id_group']))
                 DB.connection.commit()
-                print(f'CIDADE ATUALIZADA para: {cidade}')
+                print(f'DESCRICAO DO GRUPO ATUALIZADA para: {descricao}')
                 return
 
     @classmethod
@@ -184,12 +184,12 @@ class Grupo():
                     option = input('Não foi possível carregar a IMAGEM DO GRUPO. Deseja utilizar a imagem padrão? [s/N]')
                     if option.lower() == 's':
                         img_blob = imagem_blob(State.imagem_usuario_padrao)
-                        DB.cursor.execute("UPDATE tUser SET image=%s WHERE id_group=%s", (img_blob, cls.grupo['id_group']))
+                        DB.cursor.execute("UPDATE tGroup SET image=%s WHERE id_group=%s", (img_blob, cls.grupo['id_group']))
                         DB.connection.commit()
                         return
                 else:
                     img_blob = imagem_blob(path)
-                    DB.cursor.execute("UPDATE tUser SET image=%s WHERE id_group=%s", (img_blob, cls.grupo['id_group']))
+                    DB.cursor.execute("UPDATE tGroup SET image=%s WHERE id_group=%s", (img_blob, cls.grupo['id_group']))
                     DB.connection.commit()
                     return
 
