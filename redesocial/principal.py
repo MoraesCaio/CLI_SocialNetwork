@@ -102,7 +102,7 @@ class MenuPrincipal():
 
             opcoes[opcao][1]()
 
-        DB.new_group(cls.novo_grupo['nome'], cls.novo_grupo['descricao'], cls.novo_grupo['imagem'])
+        DB.new_group(cls.novo_grupo['nome'], cls.novo_grupo['descricao'], cls.novo_grupo['imagem'], State.usuario_atual)
 
         print('Grupo cadastrado!')
 

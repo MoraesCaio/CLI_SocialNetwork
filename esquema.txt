@@ -83,14 +83,14 @@ PERFIL
     (x) NOME
     (x) DESCRIÇÃO
 
-    ( ) CONFIGURAÇÕES DO GRUPO
-        ( ) DEFINIR VISIBILIDADE
-            ( ) PÚBLICO (PADRÃO)
-            ( ) PRIVADA
+    (x) CONFIGURAÇÕES DO GRUPO
+        (x) DEFINIR VISIBILIDADE
+            (x) PÚBLICO (PADRÃO)
+            (x) PRIVADA
 
-        ( ) ATUALIZAR NOME
-        ( ) ATUALIZAR DESCRIÇÃO
-        ( ) ATUALIZAR FOTO (PILLOW SHOW)
+        (x) ATUALIZAR NOME
+        (x) ATUALIZAR DESCRIÇÃO
+        (x) ATUALIZAR FOTO (PILLOW SHOW)
 
     ( ) VER FOTO (PILLOW SHOW)
     (x) VER MEMBROS

@@ -36,7 +36,7 @@ class Perfil():
             ['Ver foto', cls.ver_foto],
         ]
 
-        if cls.is_visible():
+        if cls.eh_visivel():
             opcoes.append(['Ver Amigos', cls.ver_amigos])
             opcoes.append(['Ver Grupos', cls.ver_grupos])
             opcoes.append(['Ver Mural', cls.ver_mural])
@@ -307,7 +307,7 @@ class Perfil():
                     # Desfazer amizade
                     DB.cursor.execute(f'''
                         DELETE FROM
-                            rUser_user
+                            rUser_User
                         WHERE (
                             id_user_from = {State.usuario_atual['id_user']}
                         AND
@@ -325,7 +325,7 @@ class Perfil():
                     # Desbloquear usuário
                     DB.cursor.execute(f'''
                         DELETE FROM
-                            rUser_user
+                            rUser_User
                         WHERE (
                             id_user_from = {State.usuario_atual['id_user']}
                         AND
@@ -448,7 +448,7 @@ class Perfil():
             INNER JOIN
                 tUser
             ON
-                rUser_user.id_user_from = tUser.id_user
+                rUser_User.id_user_from = tUser.id_user
             WHERE
                 id_user_to = {cls.owner_user['id_user']}
             AND
@@ -635,7 +635,7 @@ class Perfil():
                 DB.connection.commit()
 
     @classmethod
-    def is_visible(cls):
+    def eh_visivel(cls):
         DB.cursor.execute(f'SELECT visibility FROM tUser WHERE id_user={cls.owner_user["id_user"]}')
         user = DB.cursor.fetchone()
 

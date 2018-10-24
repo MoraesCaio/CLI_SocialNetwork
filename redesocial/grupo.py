@@ -2,6 +2,7 @@ from redesocial import State
 from redesocial.database import DB
 from redesocial.utils import menu_opcoes, ver_imagem, imagem_blob
 from redesocial.mural import Mural
+from PIL import Image
 
 
 class Grupo():
@@ -22,82 +23,81 @@ class Grupo():
         print(f"Nome: {cls.grupo['name']}")
         print(f"Descrição: {cls.grupo['description']}")
 
-        cls.interagir_com_grupo(cls.grupo['id_group'])
+        while True:
+
+            DB.cursor.execute(f'''
+                SELECT
+                    status
+                FROM
+                    rUser_Group
+                WHERE
+                    id_user = {State.usuario_atual['id_user']}
+                AND
+                    id_group = {cls.grupo['id_group']}
+                ''')
+            inscricao = DB.cursor.fetchone()
+
+            opcoes_grupo = [
+                ['Cancelar', None],
+                ['Ver foto', cls.ver_foto],
+            ]
+
+            if not inscricao:
+                opcoes_grupo.append(['Solicitar Entrada', cls.solicitar_entrada])
+            elif inscricao['status'] == 0:
+                opcoes_grupo.append(['Cancelar Solicitação', cls.cancelar_solicitacao])
+            # membro ou adm
+            elif inscricao['status'] == 1 or inscricao['status'] == 2:
+                opcoes_grupo.append(['Ver Mural', cls.ver_mural])
+                opcoes_grupo.append(['Ver Membros', cls.ver_membros])
+                opcoes_grupo.append(['Sair do Grupo', cls.sair_grupo])
+
+            if inscricao['status']:
+                opcoes_grupo.append(['Ver Solicitações', cls.ver_solicitacoes])
+
+            opcao_grupo = menu_opcoes('INTERAGIR COM GRUPO', opcoes_grupo)
+
+            if not opcao_grupo:
+                return
+
+            opcoes_grupo[opcao_grupo][1]()
 
     @classmethod
-    def interagir_com_grupo(cls, id_interagido):
-        # TODO: Integrar à função ver_menu e excluir essa.
+    def solicitar_entrada(cls):
         DB.cursor.execute(f'''
-            SELECT
-                status
-            FROM
+            INSERT INTO
+                rUser_Group(id_user, id_group, status)
+            VALUES
+                ({State.usuario_atual['id_user']}, {cls.grupo['id_group']}, 0)
+            ''')
+        DB.connection.commit()
+        print('Solicitação enviada.')
+
+    @classmethod
+    def cancelar_solicitacao(cls):
+        DB.cursor.execute(f'''
+            DELETE FROM
                 rUser_Group
             WHERE
                 id_user = {State.usuario_atual['id_user']}
             AND
-                id_group = {id_interagido}
+                id_group = {cls.grupo['id_group']}
             ''')
-        status = DB.cursor.fetchone()
+        DB.connection.commit()
+        print('Solicitação cancelada.')
 
-        opcoes_grupo = [
-            ['Cancelar'],
-            ['Visitar Grupo'],
-            ['Ver Membros']
-        ]
-
-        if not status:
-            opcoes_grupo.append(['Solicitar Entrada'])
-        elif status['status'] == 0:
-            opcoes_grupo.append(['Cancelar Solicitação'])
-        elif (status['status'] == 1 or status['status'] == 2):
-            opcoes_grupo.append(['Sair do Grupo'])
-
-        if cls.logado_como_adm():
-            opcoes_grupo.append(['Ver Solicitações'])
-
-        opcao_grupo = menu_opcoes('INTERAGIR COM GRUPO', opcoes_grupo)
-
-        if opcao_grupo == 1:
-            cls.ver_mural()
-        elif opcao_grupo == 2:
-            cls.ver_membros()
-        elif opcao_grupo == 3:
-            if not status:
-                # Solicitar entrada
-                DB.cursor.execute(f'''
-                    INSERT INTO
-                        rUser_Group(id_user, id_group, status)
-                    VALUES
-                        ({State.usuario_atual['id_user']}, {id_interagido}, 0)
-                    ''')
-                print('Solicitação enviada.')
-                DB.connection.commit()
-            elif status['status'] == 0:
-                # Cancelar solicitação
-                DB.cursor.execute(f'''
-                    DELETE FROM
-                        rUser_Group
-                    WHERE
-                        id_user = {State.usuario_atual['id_user']}
-                    AND
-                        id_group = {id_interagido}
-                    ''')
-                print('Solicitação cancelada.')
-                DB.connection.commit()
-            elif status['status'] == 1:
-                # Sair do grupo
-                DB.cursor.execute(f'''
-                    DELETE FROM
-                        rUser_Group
-                    WHERE
-                        id_user = {State.usuario_atual['id_user']}
-                    AND
-                        id_group = {id_interagido}
-                    ''')
-                print('Você saiu desse grupo.')
-                DB.connection.commit()
-        elif opcao_grupo == 4:
-            cls.ver_solicitacoes()
+    @classmethod
+    def sair_grupo(cls):
+        DB.cursor.execute(f'''
+            DELETE FROM
+                rUser_Group
+            WHERE
+                id_user = {State.usuario_atual['id_user']}
+            AND
+                id_group = {cls.grupo['id_group']}
+            ''')
+        DB.connection.commit()
+        print('Você saiu desse grupo.')
 
     @classmethod
     def configuracoes_grupo(cls):
@@ -220,7 +220,7 @@ class Grupo():
 
         if opcao != 0:
             opcoes_membro = [['Cancelar'], ['Visitar Perfil']]
-            if cls.logado_como_adm():
+            if cls.eh_adm():
                 # 1 = normal, 2 = admin, 3 = banido
                 status_do_membro = membros[opcao - 1]['status']
 
@@ -237,9 +237,7 @@ class Grupo():
             opcao_membro = menu_opcoes('INTERAGIR COM MEMBRO', opcoes_membro)
 
             if opcao_membro == 1:
-                # Visitar perfil
-                from redesocial.perfil import Perfil
-                Perfil(membros[opcao - 1]['id_user']).ver_menu()
+                cls.visitar_perfil(membros[opcao - 1])
 
             elif opcao_membro == 2:
                 # Remover
@@ -251,8 +249,8 @@ class Grupo():
                     AND
                         id_group = {cls.grupo['id_group']}
                     ''')
-                print('Usuário removido do grupo.')
                 DB.connection.commit()
+                print('Usuário removido do grupo.')
 
             elif opcao_membro == 3:
                 # Banir / desbanir
@@ -271,8 +269,8 @@ class Grupo():
                     AND
                         id_group = {cls.grupo['id_group']}
                     ''')
-                print('Operação realizada.')
                 DB.connection.commit()
+                print('Operação realizada.')
 
             elif opcao_membro == 4:
                 # Dar / remover admin
@@ -291,8 +289,13 @@ class Grupo():
                     AND
                         id_group = {cls.grupo['id_group']}
                     ''')
-                print('Operação realizada.')
                 DB.connection.commit()
+                print('Operação realizada.')
+
+    @classmethod
+    def visitar_perfil(cls, membro):
+        from redesocial.perfil import Perfil
+        Perfil(membro['id_user']).ver_menu()
 
     @classmethod
     def ver_solicitacoes(cls):
@@ -332,8 +335,8 @@ class Grupo():
                     AND
                         id_group = {cls.grupo['id_group']}
                     ''')
-                print('Solicitação aceita!')
                 DB.connection.commit()
+                print('Solicitação aceita!')
             elif opcao_solicitacao == 2:
                 DB.cursor.execute(f'''
                     DELETE FROM
@@ -345,8 +348,8 @@ class Grupo():
                     AND
                         status = 0
                     ''')
-                print('Solicitação recusada.')
                 DB.connection.commit()
+                print('Solicitação recusada.')
 
     @classmethod
     def ver_mural(cls):
@@ -388,7 +391,7 @@ class Grupo():
                 ['Voltar ao menu principal'],
                 ['Ver comentários'],
             ]
-            if post_interagido['id_user'] == State.usuario_atual['id_user'] or cls.logado_como_adm():
+            if post_interagido['id_user'] == State.usuario_atual['id_user'] or cls.eh_adm():
                 opcoes.append(['Remover postagem'])
 
             opcao = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes)
@@ -427,7 +430,7 @@ class Grupo():
                     opcoes = [['Cancelar'], ['Ver respostas']]
 
                     # Só quem fez o comentário ou um administrador pode remove-lô
-                    if comentarios[opcao - 2]['id_user'] == State.usuario_atual['id_user'] or cls.logado_como_adm():
+                    if comentarios[opcao - 2]['id_user'] == State.usuario_atual['id_user'] or cls.eh_adm():
                         opcoes.append(['Remover comentário'])
 
                     opcao_comentario = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
@@ -465,7 +468,7 @@ class Grupo():
                             opcoes = [['Cancelar']]
 
                             # Só quem postou a resposta ou um administrador pode remover
-                            if respostas[opcao_resposta - 2]['id_user'] == State.usuario_atual['id_user'] or cls.logado_como_adm():
+                            if respostas[opcao_resposta - 2]['id_user'] == State.usuario_atual['id_user'] or cls.eh_adm():
                                 opcoes.append(['Remover resposta'])
 
                             if menu_opcoes('INTERAGIR COM RESPOSTA', opcoes) == 1:
@@ -496,11 +499,11 @@ class Grupo():
                     WHERE
                         id_post = {post_interagido['id_post']}
                     ''')
-                print('Postagem removida.')
                 DB.connection.commit()
+                print('Postagem removida.')
 
     @classmethod
-    def logado_como_adm(cls):
+    def eh_adm(cls):
         DB.cursor.execute(f'''
             SELECT
                 status
@@ -517,6 +520,7 @@ class Grupo():
         return True if DB.cursor.fetchone() else False
 
     @classmethod
+
     def eh_do_grupo(cls):
         DB.cursor.execute(f'''
             SELECT
@@ -559,3 +563,25 @@ class Grupo():
             return True
         else:
             return False
+
+    def eh_visivel(cls):
+        DB.cursor.execute(f'SELECT visibility FROM tUser WHERE id_user={cls.owner_user["id_user"]}')
+        user = DB.cursor.fetchone()
+
+        if int(user['visibility']) == 1:
+            return True
+        elif int(user['visibility']) == 0:
+            DB.cursor.execute(f'''
+                SELECT
+                    status
+                FROM
+                    rUser_Group
+                WHERE
+                    id_user = {State.usuario_atual['id_user']}
+                AND
+                    id_group = {cls.grupo['id_group']}
+                AND
+                    (status = 1 OR status = 2)
+                ''')
+
+            return True if DB.cursor.fetchone() else False
