@@ -50,5 +50,5 @@ class DB:
         img_blob = imagem_blob(img_path)
         id_wall = cls.new_wall()
 
-        DB.cursor.execute('INSERT INTO tUser (name, description, id_wall, visibility, image) VALUES (%s, %s, %s, %s, %s)', (name, description, id_wall, visibility, img_blob))
+        DB.cursor.execute('INSERT INTO tGroup (name, description, id_wall, visibility, image) VALUES (%s, %s, %s, %s, %s)', (name, description, id_wall, visibility, img_blob))
         DB.connection.commit()

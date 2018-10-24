@@ -1,7 +1,8 @@
 from redesocial import State
 from redesocial.database import DB
-from redesocial.utils import menu_opcoes, ver_imagem
+from redesocial.utils import menu_opcoes, ver_imagem, imagem_blob
 from redesocial.grupo import Grupo
+from PIL import Image
 
 
 class Perfil():
@@ -24,7 +25,7 @@ class Perfil():
         print(f"Cidade: {cls.owner_user['city']}")
 
         opcoes = [
-            ['Voltar ao menu principal'],
+            ['Voltar ao menu principal', None],
         ]
 
         if cls.is_visible():
@@ -35,14 +36,111 @@ class Perfil():
         if cls.owner_user['id_user'] == State.usuario_atual['id_user']:
             # Dono do perfil está visualizando o próprio perfil
             opcoes.append(['Ver Solicitações', cls.ver_solicitacoes])
+            opcoes.append(['Configurações de Conta', cls.configuracoes_conta])
 
-        opcao = menu_opcoes('OPÇÕES DO PERFIL', opcoes)
-        if opcao != 0:
+        while True:
+            opcao = menu_opcoes('OPÇÕES DO PERFIL', opcoes)
+            print(type(opcao))
+            if not opcao:
+                return
             opcoes[opcao][1]()
 
     @classmethod
     def configuracoes_conta(cls):
-        pass
+        opcoes = [
+            ['Voltar', None],
+            ['Definir Visibilidade', cls.definir_visibilidade],
+            ['Atualizar Nome', cls.atualizar_nome],
+            ['Atualizar Descrição', cls.atualizar_descrição],
+            ['Atualizar Imagem', cls.atualizar_imagem]
+        ]
+
+        while True:
+            opcao = menu_opcoes('CONFIGURAÇÕES DE CONTA', opcoes)
+            if not opcao:
+                return
+            print(type(opcoes[opcao]))
+            opcoes[opcao][1]()
+
+    @classmethod
+    def definir_visibilidade(cls):
+        opcoes = [
+            ['Cancelar'],
+            ['Perfil Privado'],
+            ['Perfil Visível para Amigos'],
+            ['Perfil Visível para Amigos e Amigos de amigos'],
+            ['Perfil Público']
+        ]
+
+        while True:
+            opcao = menu_opcoes('VISIBILIDADE', opcoes)
+
+            if not opcao:
+                return
+
+            DB.cursor.execute(f'''
+                UPDATE
+                    tUser
+                SET
+                    visibility={opcao-1}
+                WHERE
+                    id_user={cls.owner_user["id_user"]}
+                ''')
+            DB.connection.commit()
+
+            print(f'Visibilidade atualizada: {opcoes[opcao]}')
+
+    @classmethod
+    def atualizar_nome(cls):
+        nome = input(f'Insira seu NOME com mais de 4 caracteres e menos de 255 caracteres (ou Aperte ENTER para cancelar).')
+
+        while True:
+            if not len(nome):
+                return
+            elif len(nome) >= 255 or len(nome) < 4:
+                nome = input(f'NOME inválido. Tente novamente (ou Aperte ENTER para cancelar).\n')
+            else:
+                DB.cursor.execute("UPDATE tUser SET name=%s WHERE id_user=%s", (nome, cls.owner_user['id_user']))
+                DB.connection.commit()
+                print(f'NOME ATUALIZADO para: {nome}')
+                return
+
+    @classmethod
+    def atualizar_cidade(cls):
+        cidade = input(f'Insira sua CIDADE com mais de 4 caracteres e menos de 255 caracteres. (ou Aperte ENTER para cancelar)')
+
+        while True:
+            if not len(cidade):
+                return
+            elif len(cidade) >= 255 or len(cidade) < 4:
+                cidade = input(f'CIDADE inválida. Tente novamente. (ou Aperte ENTER para cancelar)')
+            else:
+                DB.cursor.execute("UPDATE tUser SET city=%s WHERE id_user=%s", (cidade, cls.owner_user['id_user']))
+                DB.connection.commit()
+                print(f'CIDADE ATUALIZADA para: {cidade}')
+                return
+
+    @classmethod
+    def atualizar_imagem(cls):
+        while True:
+            path = input(f'Insira o caminho da sua IMAGEM de perfil. (ou Aperte ENTER para cancelar)')
+            if not len(path):
+                return
+            else:
+                try:
+                    Image.open(path)
+                except:
+                    option = input('Não foi possível carregar a IMAGEM. Deseja utilizar a imagem padrão? [s/N]')
+                    if option.lower() == 's':
+                        img_blob = imagem_blob(State.imagem_usuario_padrao)
+                        DB.cursor.execute("UPDATE tUser SET image=%s WHERE id_user=%s", (img_blob, cls.owner_user['id_user']))
+                        DB.connection.commit()
+                        return
+                else:
+                    img_blob = imagem_blob(path)
+                    DB.cursor.execute("UPDATE tUser SET image=%s WHERE id_user=%s", (img_blob, cls.owner_user['id_user']))
+                    DB.connection.commit()
+                    return
 
     @classmethod
     def ver_foto(cls):
@@ -432,10 +530,6 @@ class Perfil():
                     ''')
                 print('Postagem removida.')
                 DB.connection.commit()
-
-    @classmethod
-    def criar_grupo(cls):
-        pass
 
     @classmethod
     def is_visible(cls):
