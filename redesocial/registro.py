@@ -1,5 +1,6 @@
 from redesocial.utils import menu_opcoes, imagem_blob
 from redesocial import State
+from redesocial.database import DB
 from PIL import Image
 
 
@@ -36,7 +37,8 @@ class Credenciamento:
 
             opcoes[opcao][1]()
 
-        img_blob = imagem_blob(cls.novo_usuario['imagem'])
+        DB.new_user(cls.novo_usuario['nome'], cls.novo_usuario['cidade'], cls.novo_usuario['imagem'])
+
         print('Usuário cadastrado!')
 
     @classmethod
@@ -78,7 +80,7 @@ class Credenciamento:
                 except:
                     option = input('Não foi possível carregar a IMAGEM. Deseja utilizar a imagem padrão? [s/N]')
                     if option.lower() == 's':
-                        cls.novo_usuario['imagem'] = State.imagem_padrao
+                        cls.novo_usuario['imagem'] = State.imagem_usuario_padrao
                         return
                 else:
                     cls.novo_usuario['imagem'] = path
