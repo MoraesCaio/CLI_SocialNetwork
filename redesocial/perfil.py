@@ -188,7 +188,7 @@ class Perfil():
         amigos = DB.cursor.fetchall()
 
         if amigos:
-            opcoes = [['Cancelar']]# + [[f'''{amigo['name']}, de {amigo['city']}'''] for amigo in amigos]
+            opcoes = [['Cancelar']]  # + [[f'''{amigo['name']}, de {amigo['city']}'''] for amigo in amigos]
 
             for amigo in amigos:
                 # Amigo só aparece se não tiver sido bloqueado pelo usuário logado.
@@ -401,11 +401,22 @@ class Perfil():
                 rUser_Group.id_group = tGroup.id_group
             WHERE
                 id_user = {cls.owner_user['id_user']}
+            AND
+                tGroup.id_group NOT IN(
+                    SELECT
+                        id_group
+                    FROM
+                        rUser_Group
+                    WHERE
+                        id_user = {State.usuario_atual['id_user']}
+                    AND
+                        status != 2
+                )
             ''')
         grupos = DB.cursor.fetchall()
 
         if grupos:
-            opcoes = [['Voltar ao menu principal']]# + [[f'{grupo["name"]}'] for grupo in grupos]
+            opcoes = [['Voltar ao menu principal']]  # + [[f'{grupo["name"]}'] for grupo in grupos]
 
             for grupo in grupos:
                 # Checagem de grupo mútuo só em perfil de outras pessoas
@@ -511,7 +522,7 @@ class Perfil():
         opcoes_postagem = [
             ['Voltar ao menu principal'],
             ['Criar postagem']
-        ]# + [[f'-> {post["name"]}: {post["text"]}'] for post in posts]
+        ]  # + [[f'-> {post["name"]}: {post["text"]}'] for post in posts]
 
         for post in posts:
             if not cls.is_blocked_either(State.usuario_atual['id_user'], post['id_user']):
@@ -550,7 +561,7 @@ class Perfil():
                     ''')
                 comentarios = DB.cursor.fetchall()
 
-                opcoes = [['Cancelar'], ['Comentar']]# + [[f'-> {comentario["name"]}: {comentario["text"]}'] for comentario in comentarios]
+                opcoes = [['Cancelar'], ['Comentar']]  # + [[f'-> {comentario["name"]}: {comentario["text"]}'] for comentario in comentarios]
 
                 for comentario in comentarios:
                     if not cls.is_blocked_either(State.usuario_atual['id_user'], comentario['id_user']):
@@ -585,7 +596,7 @@ class Perfil():
                             ''')
                         respostas = DB.cursor.fetchall()
 
-                        opcoes_resposta = [['Cancelar'], ['Responder']]# + [[f'-> {resposta["name"]}: {resposta["text"]}'] for resposta in respostas]
+                        opcoes_resposta = [['Cancelar'], ['Responder']]  # + [[f'-> {resposta["name"]}: {resposta["text"]}'] for resposta in respostas]
 
                         for resposta in respostas:
                             if not cls.is_blocked_either(State.usuario_atual['id_user'], resposta['id_user']):

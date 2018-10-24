@@ -30,7 +30,7 @@ class Grupo():
                 ['Ver foto', cls.ver_foto],
             ]
 
-            if not cls.eh_membro() and not cls.eh_bloqueado():
+            if not cls.eh_membro() and not cls.eh_bloqueado() and not cls.eh_solicitante():
                 opcoes_grupo.append(['Solicitar Entrada', cls.solicitar_entrada])
             elif cls.eh_solicitante():
                 opcoes_grupo.append(['Cancelar Solicitação', cls.cancelar_solicitacao])

@@ -45,11 +45,25 @@ class MenuPrincipal():
             FROM
                 tUser
             WHERE
-                id_user != {State.usuario_atual["id_user"]}
+                id_user != {State.usuario_atual['id_user']}
+            AND
+                id_user NOT IN(
+                    -- Quem bloqueou o usuário atual
+                    SELECT
+                        id_user_from
+                    FROM
+                        rUser_User
+                    WHERE
+                        id_user_to = {State.usuario_atual['id_user']}
+                    AND
+                        id_user_from != {State.usuario_atual['id_user']}
+                    AND
+                        status = 2
+                )
             ''')
-        users = DB.cursor.fetchall()
+        usuarios = DB.cursor.fetchall()
 
-        opcoes_usuarios = [['Cancelar']] + [[f'{user["name"]}, {user["city"]}'] for user in users]
+        opcoes_usuarios = [['Cancelar']] + [[f'{usuario["name"]}, {usuario["city"]}'] for usuario in usuarios]
 
         while True:
             opcao = menu_opcoes('USUÁRIOS DISPONÍVEIS PARA INTERAGIR', opcoes_usuarios)
@@ -57,12 +71,28 @@ class MenuPrincipal():
             if not opcao:
                 return
             else:
-                Perfil.interagir_com_usuario(users[opcao - 1]['id_user'])
+                Perfil.interagir_com_usuario(usuarios[opcao - 1]['id_user'])
                 return
 
     @classmethod
     def ver_lista_grupos(cls):
-        DB.cursor.execute(f'SELECT * FROM tGroup')
+        DB.cursor.execute(f'''
+            SELECT
+                id_group, name
+            FROM
+                tGroup
+            WHERE
+                id_group NOT IN(
+                    SELECT
+                        id_group
+                    FROM
+                        rUser_Group
+                    WHERE
+                        id_user = {State.usuario_atual['id_user']}
+                    AND
+                        status != 2
+                )
+            ''')
         grupos = DB.cursor.fetchall()
 
         opcoes = [['Cancelar']] + [[f'{grupo["name"]}'] for grupo in grupos]
