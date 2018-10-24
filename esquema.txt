@@ -26,6 +26,10 @@
         ( ) VISITAR GRUPO
         (x) SOLICITAR ENTRADA NO GRUPO (SE NÃO FOR DO GRUPO)
         (x) SAIR DO GRUPO (SE FOR DO GRUPO)
+    (x) CRIAR GRUPO (DONO DO PERFIL)
+        (x) DEFINIR NOME
+        (x) DEFINIR DESCRIÇÃO
+        (x) DEFINIR PATH DA FOTO
     (x) LOGOUT
 
 ----------------------------------------
@@ -35,17 +39,17 @@ PERFIL
     (x) NOME
     (x) CIDADE
 
-    ( ) CONFIGURAÇÕES DE CONTA
-        ( ) DEFINIR VISIBILIDADE
-            ( ) PÚBLICA (PADRÃO)
-            ( ) AMIGOS E AMIGOS DE AMIGOS
-            ( ) AMIGOS
-            ( ) PRIVADA
-        ( ) ATUALIZAR NOME
-        ( ) ATUALIZAR DESCRIÇÃO
-        ( ) ATUALIZAR IMAGEM (PATH)
+    (x) CONFIGURAÇÕES DE CONTA
+        (x) DEFINIR VISIBILIDADE
+            (x) PÚBLICA (PADRÃO)
+            (x) AMIGOS E AMIGOS DE AMIGOS
+            (x) AMIGOS
+            (x) PRIVADA
+        (x) ATUALIZAR NOME
+        (x) ATUALIZAR DESCRIÇÃO
+        (x) ATUALIZAR IMAGEM (PATH)
 
-    ( ) VER FOTO (PILLOW SHOW)
+    (x) VER FOTO (PILLOW SHOW)
     (x) VER AMIGOS (ESCOLHE NÚMERO)
         (x) VISITAR PERFIL
         (x) SOLICITAR AMIZADE (SE NÃO TIVER AMIZADE)
