@@ -28,6 +28,7 @@ class Perfil():
 
         opcoes = [
             ['Voltar ao menu principal', None],
+            ['Ver foto', cls.ver_foto],
         ]
 
         if cls.is_visible():

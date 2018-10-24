@@ -30,7 +30,7 @@ def menu_opcoes(titulo, opcoes):
 def ver_imagem(entidade):
     tmp_file = 'tmp.jpg'
     with open(tmp_file, 'wb') as f:
-        f.write(entidade['img'])
+        f.write(entidade['image'])
     Image.open(tmp_file).show()
     os.remove(tmp_file)
 
