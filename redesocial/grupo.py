@@ -2,7 +2,6 @@ from redesocial import State
 from redesocial.database import DB
 from redesocial.utils import menu_opcoes, ver_imagem
 
-
 class Grupo():
 
     grupo = None
@@ -51,22 +50,7 @@ class Grupo():
         elif (status['status'] == 1 or status['status'] == 2):
             opcoes_grupo.append(['Sair do Grupo'])
 
-        DB.cursor.execute(f'''
-            SELECT
-                status
-            FROM
-                rUser_Group
-            WHERE
-                id_user = {State.usuario_atual['id_user']}
-            AND
-                id_group = {id_interagido}
-            AND
-                status = 2
-            ''')
-
-        is_admin = True if DB.cursor.fetchone() else None
-
-        if is_admin:
+        if cls.logado_como_adm():
             opcoes_grupo.append(['Ver Solicitações'])
 
         opcao_grupo = menu_opcoes('INTERAGIR COM GRUPO', opcoes_grupo)
@@ -135,14 +119,88 @@ class Grupo():
             WHERE
                 id_group = {cls.grupo['id_group']}
             AND
-                (status = 1 OR status = 2)
+                (status != 0)
             ''')
 
         membros = DB.cursor.fetchall()
         opcoes = [['Cancelar']] + [[f'{membro["name"]}'] for membro in membros]
         opcao = menu_opcoes('INTERAGIR COM MEMBRO', opcoes)
-        # TODO: tratar opção
 
+        if opcao != 0:
+            opcoes_membro = [['Cancelar'], ['Visitar Perfil']]
+            if cls.logado_como_adm():
+                # 1 = normal, 2 = admin, 3 = banido
+                status_do_membro = membros[opcao - 1]['status']
+
+                opcoes_membro.append(['Remover'])
+
+                if status_do_membro == 3:
+                    opcoes_membro.append(['Desbanir'])
+                else:
+                    opcoes_membro.append(['Banir'])
+                    if status_do_membro == 1:
+                        opcoes_membro.append(['Tornar Administrador'])
+                    elif status_do_membro == 2:
+                        opcoes_membro.append(['Tornar Usuário Normal'])
+            opcao_membro = menu_opcoes('INTERAGIR COM MEMBRO', opcoes_membro)
+
+            if opcao_membro == 1:
+                # Visitar perfil
+                from redesocial.perfil import Perfil
+                Perfil(membros[opcao - 1]['id_user']).ver_menu()
+
+            elif opcao_membro == 2:
+                # Remover
+                DB.cursor.execute(f'''
+                    DELETE FROM
+                        rUser_Group
+                    WHERE
+                        id_user = {membros[opcao - 1]['id_user']}
+                    AND
+                        id_group = {cls.grupo['id_group']}
+                    ''')
+                print('Usuário removido do grupo.')
+                DB.connection.commit()
+
+            elif opcao_membro == 3:
+                # Banir / desbanir
+                if status_do_membro == 3:
+                    novo_status = 1 # Desbanir
+                elif status_do_membro != 3:
+                    novo_status = 3 # Banir
+
+                DB.cursor.execute(f'''
+                    UPDATE
+                        rUser_Group
+                    SET
+                        status = {novo_status}
+                    WHERE
+                        id_user = {membros[opcao - 1]['id_user']}
+                    AND
+                        id_group = {cls.grupo['id_group']}
+                    ''')
+                print('Operação realizada.')
+                DB.connection.commit()
+
+            elif opcao_membro == 4:
+                # Dar / remover admin
+                if status_do_membro == 2:
+                    novo_status = 1 # Remover admin
+                elif status_do_membro == 1:
+                    novo_status = 2 # Dar admin
+
+                DB.cursor.execute(f'''
+                    UPDATE
+                        rUser_Group
+                    SET
+                        status = {novo_status}
+                    WHERE
+                        id_user = {membros[opcao - 1]['id_user']}
+                    AND
+                        id_group = {cls.grupo['id_group']}
+                    ''')
+                print('Operação realizada.')
+                DB.connection.commit()
 
     @classmethod
     def ver_solicitacoes(cls):
@@ -164,9 +222,57 @@ class Grupo():
         solicitacoes = DB.cursor.fetchall()
         opcoes = [['Cancelar']] + [[f'{solicitacao["name"]}'] for solicitacao in solicitacoes]
         opcao = menu_opcoes('INTERAGIR COM SOLICITAÇÃO', opcoes)
-        # TODO: tratar opção
 
+        if opcao != 0:
+            opcao_solicitacao = menu_opcoes(
+                'INTERAGIR COM SOLICITACAO',
+                [['Cancelar'], ['Aceitar'], ['Recusar']]
+                )
+
+            if opcao_solicitacao == 1:
+                DB.cursor.execute(f'''
+                    UPDATE
+                        rUser_Group
+                    SET
+                        status = 1
+                    WHERE
+                        id_user = {solicitacoes[opcao - 1]['id_user']}
+                    AND
+                        id_group = {cls.grupo['id_group']}
+                    ''')
+                print('Solicitação aceita!')
+                DB.connection.commit()
+            elif opcao_solicitacao == 2:
+                DB.cursor.execute(f'''
+                    DELETE FROM
+                        rUser_Group
+                    WHERE
+                        id_user = {solicitacoes[opcao - 1]['id_user']}
+                    AND
+                        id_group = {cls.grupo['id_group']}
+                    AND
+                        status = 0
+                    ''')
+                print('Solicitação recusada.')
+                DB.connection.commit()
 
     @classmethod
     def ver_mural(cls):
         pass
+
+    @classmethod
+    def logado_como_adm(cls):
+        DB.cursor.execute(f'''
+            SELECT
+                status
+            FROM
+                rUser_Group
+            WHERE
+                id_user = {State.usuario_atual['id_user']}
+            AND
+                id_group = {cls.grupo['id_group']}
+            AND
+                status = 2
+            ''')
+
+        return True if DB.cursor.fetchone() else False
