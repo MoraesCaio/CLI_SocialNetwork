@@ -36,7 +36,7 @@ class Perfil():
             ['Ver foto', cls.ver_foto],
         ]
 
-        if cls.eh_visivel() or owner_user['id_user'] == State.usuario_atual['id_user']:
+        if cls.eh_visivel() or cls.owner_user['id_user'] == State.usuario_atual['id_user']:
             opcoes.append(['Ver Amigos', cls.ver_amigos])
             opcoes.append(['Ver Grupos', cls.ver_grupos])
             opcoes.append(['Ver Mural', cls.ver_mural])
