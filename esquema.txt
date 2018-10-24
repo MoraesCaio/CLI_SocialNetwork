@@ -60,7 +60,6 @@ PERFIL
         (x) SOLICITAR ENTRADA NO GRUPO (SE NÃO FOR DO GRUPO)
         (x) SAIR DO GRUPO (DONO DO PERFIL)
     (x) VER SOLICITAÇÕES (ESCOLHE NÚMERO) (DONO DO PERFIL)
-        (?) VISITAR PERFIL
         (x) ACEITAR
         (x) REJEITAR
     (x) VER MURAL
@@ -75,6 +74,10 @@ PERFIL
             (x) REMOVER RESPOSTA (DONO DO PERFIL E AUTOR)
             ( ) RESPONDER
 
+    (x) CRIAR GRUPO (DONO DO PERFIL)
+        (x) DEFINIR NOME
+        (x) DEFINIR DESCRIÇÃO
+        (x) DEFINIR PATH DA FOTO
 
 ( ) GRUPO
     (x) NOME
@@ -91,25 +94,24 @@ PERFIL
 
     ( ) VER FOTO (PILLOW SHOW)
     (x) VER MEMBROS
-        ( ) VISITAR PERFIL
-        ( ) REMOVER (ADM)
-        ( ) BANIR (ADM)
-        ( ) REMOVER BANIMENTO (ADM)
-        ( ) TORNAR ADM (ADM)
-        ( ) REMOVER ADM (ADM)
+        (x) VISITAR PERFIL
+        (x) REMOVER (ADM)
+        (x) BANIR (ADM)
+        (x) REMOVER BANIMENTO (ADM)
+        (x) TORNAR ADM (ADM)
+        (x) REMOVER ADM (ADM)
     (x) VER SOLICITAÇÕES (DONO DO PERFIL)
-        ( ) VISITAR PERFIL
-        ( ) ACEITAR
-        ( ) REJEITAR
+        (x) ACEITAR
+        (x) REJEITAR
 
-    ( ) VER MURAL
+    (x) VER MURAL
         ( ) CRIAR POST
             ( ) DEFINIR PATH DA IMAGEM
             ( ) ESCREVER TEXTO
-        ( ) REMOVER POST (ADM E AUTOR)
-        ( ) VISUALIZAR COMENTÁRIOS
-            ( ) REMOVER COMENTÁRIO (ADM E AUTOR)
+        (x) REMOVER POST (ADM E AUTOR)
+        (x) VISUALIZAR COMENTÁRIOS
+            (x) REMOVER COMENTÁRIO (ADM E AUTOR)
             ( ) COMENTAR
-            ( ) VISUALIZAR RESPOSTAS
-                ( ) REMOVER RESPOSTA (ADM E AUTOR)
+            (x) VISUALIZAR RESPOSTAS
+                (x) REMOVER RESPOSTA (ADM E AUTOR)
                 ( ) RESPONDER
