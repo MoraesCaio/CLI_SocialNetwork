@@ -24,10 +24,12 @@ class Perfil():
 
         opcoes = [
             ['Voltar ao menu principal'],
-            ['Ver Amigos', cls.ver_amigos],
-            ['Ver Grupos', cls.ver_grupos],
-            ['Ver Mural', cls.ver_mural]
-            ]
+        ]
+
+        if cls.is_visible():
+            opcoes.append(['Ver Amigos', cls.ver_amigos])
+            opcoes.append(['Ver Grupos', cls.ver_grupos])
+            opcoes.append(['Ver Mural', cls.ver_mural])
 
         if cls.owner_user['id_user'] == State.usuario_atual['id_user']:
             # Dono do perfil está visualizando o próprio perfil
@@ -133,12 +135,12 @@ class Perfil():
             ['Cancelar'],
             ['Visitar Perfil'],
             [opcao_de_amizade]
-            ]
+        ]
 
         # Opção de bloquear não aparece se o usuário já está bloqueado
         if (status_dos_usuarios and status_dos_usuarios['status'] != 2) or (
                 not status_dos_usuarios):
-                opcoes.append(['Bloquear'])
+            opcoes.append(['Bloquear'])
 
         opcao_usuario = menu_opcoes(f'''INTERAGIR COM USUÁRIO''', opcoes)
         if opcao_usuario != 0:
@@ -318,11 +320,11 @@ class Perfil():
         opcoes_postagem = [
             ['Voltar ao menu principal'],
             ['Criar postagem']
-            ] + [[f'-> {post["name"]}: {post["text"]}'] for post in posts]
+        ] + [[f'-> {post["name"]}: {post["text"]}'] for post in posts]
         opcao_postagem = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes_postagem)
 
         if opcao_postagem == 1:
-            pass # TODO: criar postagem
+            pass  # TODO: criar postagem
         elif opcao_postagem > 1:
             # Interagir com uma postagem
             post_interagido = posts[opcao_postagem - 2]
@@ -330,7 +332,7 @@ class Perfil():
             opcoes = [
                 ['Voltar ao menu principal'],
                 ['Ver comentários'],
-                ]
+            ]
             if post_interagido['id_user'] == State.usuario_atual['id_user'] or cls.owner_user['id_user'] == State.usuario_atual['id_user']:
                 opcoes.append(['Remover postagem'])
 
@@ -356,7 +358,7 @@ class Perfil():
                 opcao = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
 
                 if opcao == 1:
-                    pass # TODO: postar comentario
+                    pass  # TODO: postar comentario
                 elif opcao > 1:
                     # Interagir com comentário
                     opcoes = [['Cancelar'], ['Responder'], ['Ver respostas']]
@@ -367,7 +369,7 @@ class Perfil():
 
                     opcao_comentario = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
                     if opcao_comentario == 1:
-                        pass # TODO: postar resposta
+                        pass  # TODO: postar resposta
                     elif opcao_comentario == 2:
                         # Ver respostas
                         DB.cursor.execute(f'''
@@ -388,7 +390,7 @@ class Perfil():
                         opcao_resposta = menu_opcoes('INTERAGIR COM RESPOSTA', opcoes_resposta)
 
                         if opcao_resposta == 1:
-                            pass # TODO: responder
+                            pass  # TODO: responder
                         elif opcao_resposta > 1:
                             # Interagir com resposta
                             opcoes = [['Cancelar']]
@@ -431,3 +433,67 @@ class Perfil():
     @classmethod
     def criar_grupo(cls):
         pass
+
+    @classmethod
+    def is_visible(cls):
+        DB.cursor.execute(f'SELECT visibility FROM tUser WHERE id_user={cls.owner_user["id_user"]}')
+        user = DB.cursor.fetchone()
+
+        if int(user['visibility']) == 3:
+            return True
+        elif int(user['visibility']) == 2:
+            friends = cls.get_amigos(cls.owner_user['id_user'])
+
+            fof = []
+            for friend in friends:
+                fof += cls.get_amigos(friend['id_user'])
+
+            if State.usuario_atual['id_user'] in [user['id_user'] for user in friends + fof]:
+                return True
+            else:
+                return False
+
+        elif int(user['visibility']) == 1:
+            friends = cls.get_amigos(cls.owner_user['id_user'])
+            if State.usuario_atual['id_user'] in [friend['id_user'] for friend in friends]:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    @classmethod
+    def get_amigos(cls, user_id):
+        DB.cursor.execute(f'''
+            -- Amigos
+            -- Os convites de amizade confirmados que essa pessoa fez
+            SELECT
+                tUser.id_user
+            FROM
+                rUser_User
+            INNER JOIN
+                tUser
+            ON
+                rUser_User.id_user_to = tUser.id_user
+            WHERE
+                status = 1
+            AND
+                id_user_from = {user_id}
+
+            -- Os convites de amizade que essa pessoa aceitou
+            UNION
+            SELECT
+                tUser.id_user
+            FROM
+                rUser_User
+            INNER JOIN
+                tUser
+            ON
+                rUser_User.id_user_from = tUser.id_user
+            WHERE
+                status = 1
+            AND
+                id_user_to = {user_id}
+        ''')
+        friends = DB.cursor.fetchall()
+        return friends
