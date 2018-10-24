@@ -30,7 +30,7 @@ CREATE TABLE tPost(
 	id_user INTEGER NOT NULL,
 	id_wall INTEGER NOT NULL,
 	text VARCHAR(512),
-	img BLOB,
+	image BLOB,
 	PRIMARY KEY (id_post),
 	FOREIGN KEY (id_user) REFERENCES tUser(id_user),
 	FOREIGN KEY (id_wall) REFERENCES tWall(id_wall)
