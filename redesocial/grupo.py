@@ -25,34 +25,22 @@ class Grupo():
 
         while True:
 
-            DB.cursor.execute(f'''
-                SELECT
-                    status
-                FROM
-                    rUser_Group
-                WHERE
-                    id_user = {State.usuario_atual['id_user']}
-                AND
-                    id_group = {cls.grupo['id_group']}
-                ''')
-            inscricao = DB.cursor.fetchone()
-
             opcoes_grupo = [
                 ['Cancelar', None],
                 ['Ver foto', cls.ver_foto],
             ]
 
-            if not inscricao:
+            if not cls.eh_membro() and not cls.eh_bloqueado():
                 opcoes_grupo.append(['Solicitar Entrada', cls.solicitar_entrada])
-            elif inscricao['status'] == 0:
+            elif cls.eh_solicitante():
                 opcoes_grupo.append(['Cancelar Solicitação', cls.cancelar_solicitacao])
             # membro ou adm
-            elif inscricao['status'] == 1 or inscricao['status'] == 2:
+            elif cls.eh_membro():
                 opcoes_grupo.append(['Ver Mural', cls.ver_mural])
                 opcoes_grupo.append(['Ver Membros', cls.ver_membros])
                 opcoes_grupo.append(['Sair do Grupo', cls.sair_grupo])
 
-            if inscricao['status']:
+            if cls.eh_adm():
                 opcoes_grupo.append(['Ver Solicitações', cls.ver_solicitacoes])
 
             opcao_grupo = menu_opcoes('INTERAGIR COM GRUPO', opcoes_grupo)
@@ -234,63 +222,17 @@ class Grupo():
                         opcoes_membro.append(['Tornar Administrador'])
                     elif status_do_membro == 2:
                         opcoes_membro.append(['Tornar Usuário Normal'])
+
             opcao_membro = menu_opcoes('INTERAGIR COM MEMBRO', opcoes_membro)
 
             if opcao_membro == 1:
                 cls.visitar_perfil(membros[opcao - 1])
-
             elif opcao_membro == 2:
-                # Remover
-                DB.cursor.execute(f'''
-                    DELETE FROM
-                        rUser_Group
-                    WHERE
-                        id_user = {membros[opcao - 1]['id_user']}
-                    AND
-                        id_group = {cls.grupo['id_group']}
-                    ''')
-                DB.connection.commit()
-                print('Usuário removido do grupo.')
-
+                cls.remover_membro(membros[opcao - 1])
             elif opcao_membro == 3:
-                # Banir / desbanir
-                if status_do_membro == 3:
-                    novo_status = 1  # Desbanir
-                elif status_do_membro != 3:
-                    novo_status = 3  # Banir
-
-                DB.cursor.execute(f'''
-                    UPDATE
-                        rUser_Group
-                    SET
-                        status = {novo_status}
-                    WHERE
-                        id_user = {membros[opcao - 1]['id_user']}
-                    AND
-                        id_group = {cls.grupo['id_group']}
-                    ''')
-                DB.connection.commit()
-                print('Operação realizada.')
-
+                cls.alternar_banimento(membros[opcao - 1], status_do_membro)
             elif opcao_membro == 4:
-                # Dar / remover admin
-                if status_do_membro == 2:
-                    novo_status = 1  # Remover admin
-                elif status_do_membro == 1:
-                    novo_status = 2  # Dar admin
-
-                DB.cursor.execute(f'''
-                    UPDATE
-                        rUser_Group
-                    SET
-                        status = {novo_status}
-                    WHERE
-                        id_user = {membros[opcao - 1]['id_user']}
-                    AND
-                        id_group = {cls.grupo['id_group']}
-                    ''')
-                DB.connection.commit()
-                print('Operação realizada.')
+                cls.alternar_adm(membros[opcao - 1], status_do_membro)
 
     @classmethod
     def visitar_perfil(cls, membro):
@@ -298,58 +240,118 @@ class Grupo():
         Perfil(membro['id_user']).ver_menu()
 
     @classmethod
-    def ver_solicitacoes(cls):
+    def remover_membro(cls, membro):
         DB.cursor.execute(f'''
-            SELECT
-                *
-            FROM
+            DELETE FROM
                 rUser_Group
-            INNER JOIN
-                tUser
-            ON
-                rUser_Group.id_user = tUser.id_user
             WHERE
-                id_group = {cls.grupo['id_group']}
+                id_user = {membro['id_user']}
             AND
-                status = 0
+                id_group = {cls.grupo['id_group']}
+            ''')
+        DB.connection.commit()
+        print('Usuário removido do grupo.')
+
+    @classmethod
+    def alternar_banimento(cls, membro, status_do_membro):
+        if status_do_membro == 3:
+            novo_status = 1  # Desbanir
+        elif status_do_membro != 3:
+            novo_status = 3  # Banir
+
+        DB.cursor.execute(f'''
+            UPDATE
+                rUser_Group
+            SET
+                status = {novo_status}
+            WHERE
+                id_user = {membro['id_user']}
+            AND
+                id_group = {cls.grupo['id_group']}
             ''')
 
-        solicitacoes = DB.cursor.fetchall()
-        opcoes = [['Cancelar']] + [[f'{solicitacao["name"]}'] for solicitacao in solicitacoes]
-        opcao = menu_opcoes('INTERAGIR COM SOLICITAÇÃO', opcoes)
+        DB.connection.commit()
+        print('Operação realizada.')
 
-        if opcao != 0:
-            opcao_solicitacao = menu_opcoes(
-                'INTERAGIR COM SOLICITACAO',
-                [['Cancelar'], ['Aceitar'], ['Recusar']]
-            )
+    @classmethod
+    def alternar_adm(cls, membro, status_do_membro):
+        # Dar / remover admin
+        if status_do_membro == 2:
+            novo_status = 1  # Remover admin
+        elif status_do_membro == 1:
+            novo_status = 2  # Dar admin
 
-            if opcao_solicitacao == 1:
-                DB.cursor.execute(f'''
-                    UPDATE
-                        rUser_Group
-                    SET
-                        status = 1
-                    WHERE
-                        id_user = {solicitacoes[opcao - 1]['id_user']}
-                    AND
-                        id_group = {cls.grupo['id_group']}
-                    ''')
-                DB.connection.commit()
-                print('Solicitação aceita!')
-            elif opcao_solicitacao == 2:
-                DB.cursor.execute(f'''
-                    DELETE FROM
-                        rUser_Group
-                    WHERE
-                        id_user = {solicitacoes[opcao - 1]['id_user']}
-                    AND
-                        id_group = {cls.grupo['id_group']}
-                    AND
-                        status = 0
-                    ''')
-                DB.connection.commit()
-                print('Solicitação recusada.')
+        DB.cursor.execute(f'''
+            UPDATE
+                rUser_Group
+            SET
+                status = {novo_status}
+            WHERE
+                id_user = {membro['id_user']}
+            AND
+                id_group = {cls.grupo['id_group']}
+            ''')
+        DB.connection.commit()
+        print('Operação realizada.')
+
+    @classmethod
+    def ver_solicitacoes(cls):
+        while True:
+            DB.cursor.execute(f'''
+                SELECT
+                    *
+                FROM
+                    rUser_Group
+                INNER JOIN
+                    tUser
+                ON
+                    rUser_Group.id_user = tUser.id_user
+                WHERE
+                    id_group = {cls.grupo['id_group']}
+                AND
+                    status = 0
+                ''')
+
+            solicitacoes = DB.cursor.fetchall()
+            opcoes = [['Cancelar']] + [[f'{solicitacao["name"]}'] for solicitacao in solicitacoes]
+            opcao = menu_opcoes('INTERAGIR COM SOLICITAÇÃO', opcoes)
+
+            if opcao != 0:
+                opcao_solicitacao = menu_opcoes(
+                    'INTERAGIR COM SOLICITACAO',
+                    [['Cancelar'], ['Aceitar'], ['Recusar']]
+                )
+
+                # Aceitar solicitação
+                if opcao_solicitacao == 1:
+                    DB.cursor.execute(f'''
+                        UPDATE
+                            rUser_Group
+                        SET
+                            status = 1
+                        WHERE
+                            id_user = {solicitacoes[opcao - 1]['id_user']}
+                        AND
+                            id_group = {cls.grupo['id_group']}
+                        ''')
+                    DB.connection.commit()
+                    print('Solicitação aceita!')
+                # Recusar solicitação
+                elif opcao_solicitacao == 2:
+                    DB.cursor.execute(f'''
+                        DELETE FROM
+                            rUser_Group
+                        WHERE
+                            id_user = {solicitacoes[opcao - 1]['id_user']}
+                        AND
+                            id_group = {cls.grupo['id_group']}
+                        AND
+                            status = 0
+                        ''')
+                    DB.connection.commit()
+                    print('Solicitação recusada.')
+            else:
+                return
 
     @classmethod
     def ver_mural(cls):
@@ -370,7 +372,7 @@ class Grupo():
         opcoes_postagem = [
             ['Voltar ao menu principal'],
             ['Criar postagem']
-        ]# + [[f'-> {post["name"]}: {post["text"]}'] for post in posts]
+        ]  # + [[f'-> {post["name"]}: {post["text"]}'] for post in posts]
 
         for post in posts:
             if not cls.is_blocked_either(State.usuario_atual['id_user'], post['id_user']):
@@ -379,7 +381,7 @@ class Grupo():
         opcao_postagem = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes_postagem)
 
         if opcao_postagem == 1:
-            if cls.eh_do_grupo():
+            if cls.eh_membro():
                 Mural(cls.grupo['id_wall']).fazer_postagem()
             else:
                 print('Você não faz parte desse grupo.')
@@ -412,7 +414,7 @@ class Grupo():
                     ''')
                 comentarios = DB.cursor.fetchall()
 
-                opcoes = [['Cancelar'], ['Comentar']]# + [[f'-> {comentario["name"]}: {comentario["text"]}'] for comentario in comentarios]
+                opcoes = [['Cancelar'], ['Comentar']]  # + [[f'-> {comentario["name"]}: {comentario["text"]}'] for comentario in comentarios]
 
                 for comentario in comentarios:
                     if not cls.is_blocked_either(State.usuario_atual['id_user'], comentario['id_user']):
@@ -421,7 +423,7 @@ class Grupo():
                 opcao = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
 
                 if opcao == 1:
-                    if cls.eh_do_grupo():
+                    if cls.eh_membro():
                         Mural(cls.grupo['id_wall']).fazer_comentario(post_interagido['id_post'])
                     else:
                         print('Você não faz parte desse grupo.')
@@ -450,7 +452,7 @@ class Grupo():
                             ''')
                         respostas = DB.cursor.fetchall()
 
-                        opcoes_resposta = [['Cancelar'], ['Responder']]# + [[f'-> {resposta["name"]}: {resposta["text"]}'] for resposta in respostas]
+                        opcoes_resposta = [['Cancelar'], ['Responder']]  # + [[f'-> {resposta["name"]}: {resposta["text"]}'] for resposta in respostas]
 
                         for resposta in respostas:
                             if not cls.is_blocked_either(State.usuario_atual['id_user'], resposta['id_user']):
@@ -459,7 +461,7 @@ class Grupo():
                         opcao_resposta = menu_opcoes('INTERAGIR COM RESPOSTA', opcoes_resposta)
 
                         if opcao_resposta == 1:
-                            if cls.eh_do_grupo():
+                            if cls.eh_membro():
                                 Mural(cls.grupo['id_wall']).fazer_resposta(comentarios[opcao - 2]['id_comment'])
                             else:
                                 print('Você não faz parte desse grupo.')
@@ -503,39 +505,42 @@ class Grupo():
                 print('Postagem removida.')
 
     @classmethod
-    def eh_adm(cls):
+    def checar_status(cls, status, user=None):
+        if type(user) == dict:
+            id_user = user['id_user']
+        elif user is None:
+            id_user = State.usuario_atual['id_user']
+
         DB.cursor.execute(f'''
             SELECT
                 status
             FROM
                 rUser_Group
             WHERE
-                id_user = {State.usuario_atual['id_user']}
+                id_user = {id_user}
             AND
                 id_group = {cls.grupo['id_group']}
             AND
-                status = 2
+                status = {status}
             ''')
 
         return True if DB.cursor.fetchone() else False
 
     @classmethod
+    def eh_adm(cls, user=None):
+        return cls.checar_status(2, user)
 
-    def eh_do_grupo(cls):
-        DB.cursor.execute(f'''
-            SELECT
-                status
-            FROM
-                rUser_Group
-            WHERE
-                id_user = {State.usuario_atual['id_user']}
-            AND
-                id_group = {cls.grupo['id_group']}
-            AND
-                (status = 1 OR status = 2)
-            ''')
+    @classmethod
+    def eh_membro(cls, user=None):
+        return cls.checar_status(2, user) or cls.checar_status(1, user)
 
-        return True if DB.cursor.fetchone() else False
+    @classmethod
+    def eh_bloqueado(cls, user=None):
+        return cls.checar_status(3, user)
+
+    @classmethod
+    def eh_solicitante(cls, user=None):
+        return cls.checar_status(0, user)
 
     @classmethod
     def is_blocked_generic(cls, user_a, user_b):
@@ -563,25 +568,3 @@ class Grupo():
             return True
         else:
             return False
-
-    def eh_visivel(cls):
-        DB.cursor.execute(f'SELECT visibility FROM tUser WHERE id_user={cls.owner_user["id_user"]}')
-        user = DB.cursor.fetchone()
-
-        if int(user['visibility']) == 1:
-            return True
-        elif int(user['visibility']) == 0:
-            DB.cursor.execute(f'''
-                SELECT
-                    status
-                FROM
-                    rUser_Group
-                WHERE
-                    id_user = {State.usuario_atual['id_user']}
-                AND
-                    id_group = {cls.grupo['id_group']}
-                AND
-                    (status = 1 OR status = 2)
-                ''')
-
-            return True if DB.cursor.fetchone() else False
