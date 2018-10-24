@@ -31,7 +31,7 @@ class Perfil():
             ['Ver foto', cls.ver_foto],
         ]
 
-        if cls.is_visible():
+        if cls.eh_visivel():
             opcoes.append(['Ver Amigos', cls.ver_amigos])
             opcoes.append(['Ver Grupos', cls.ver_grupos])
             opcoes.append(['Ver Mural', cls.ver_mural])
@@ -527,7 +527,7 @@ class Perfil():
                 DB.connection.commit()
 
     @classmethod
-    def is_visible(cls):
+    def eh_visivel(cls):
         DB.cursor.execute(f'SELECT visibility FROM tUser WHERE id_user={cls.owner_user["id_user"]}')
         user = DB.cursor.fetchone()
 
