@@ -1,6 +1,8 @@
 from redesocial import State
 from redesocial.database import DB
 from redesocial.utils import menu_opcoes, ver_imagem
+from redesocial.mural import Mural
+
 
 class Grupo():
 
@@ -279,7 +281,8 @@ class Grupo():
         opcao_postagem = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes_postagem)
 
         if opcao_postagem == 1:
-            pass  # TODO: criar postagem
+            # TODO: Checar antes se o usuário tem permissão pra postar no grupo
+            Mural(cls.grupo['id_wall']).fazer_postagem()
         elif opcao_postagem > 1:
             # Interagir com uma postagem
             post_interagido = posts[opcao_postagem - 2]
@@ -313,10 +316,11 @@ class Grupo():
                 opcao = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
 
                 if opcao == 1:
-                    pass  # TODO: postar comentario
+                    # TODO: Checar antes se o usuário tem permissão pra postar no grupo
+                    Mural(cls.grupo['id_wall']).fazer_comentario(post_interagido['id_post'])
                 elif opcao > 1:
                     # Interagir com comentário
-                    opcoes = [['Cancelar'], ['Responder'], ['Ver respostas']]
+                    opcoes = [['Cancelar'], ['Ver respostas']]
 
                     # Só quem fez o comentário ou um administrador pode remove-lô
                     if comentarios[opcao - 2]['id_user'] == State.usuario_atual['id_user'] or cls.logado_como_adm():
@@ -324,8 +328,6 @@ class Grupo():
 
                     opcao_comentario = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
                     if opcao_comentario == 1:
-                        pass  # TODO: postar resposta
-                    elif opcao_comentario == 2:
                         # Ver respostas
                         DB.cursor.execute(f'''
                             SELECT
@@ -345,7 +347,8 @@ class Grupo():
                         opcao_resposta = menu_opcoes('INTERAGIR COM RESPOSTA', opcoes_resposta)
 
                         if opcao_resposta == 1:
-                            pass  # TODO: responder
+                            # TODO: Checar antes se o usuário tem permissão pra postar no grupo
+                            Mural(cls.grupo['id_wall']).fazer_resposta(comentarios[opcao - 2]['id_comment'])
                         elif opcao_resposta > 1:
                             # Interagir com resposta
                             opcoes = [['Cancelar']]

@@ -1,7 +1,9 @@
+import os
 from redesocial import State
 from redesocial.database import DB
-from redesocial.utils import menu_opcoes, ver_imagem
+from redesocial.utils import menu_opcoes, ver_imagem, imagem_blob
 from redesocial.grupo import Grupo
+from redesocial.mural import Mural
 
 
 class Perfil():
@@ -156,7 +158,6 @@ class Perfil():
                         VALUES
                             ({State.usuario_atual['id_user']}, {id_interagido}, 0)
                     ''')
-                    print(f'{State.usuario_atual["id_user"]} solicitou à {"id_interagido"}')
                     DB.connection.commit()
                     print('Amizade solicitada!')
                 elif status_dos_usuarios['status'] == 1:
@@ -304,9 +305,6 @@ class Perfil():
 
     @classmethod
     def ver_mural(cls):
-        DB.cursor.execute(f'SELECT id_wall FROM tUser WHERE id_user = {cls.owner_user["id_user"]}')
-        id_wall = DB.cursor.fetchone()['id_wall']
-
         DB.cursor.execute(f'''
             SELECT
                 *
@@ -317,7 +315,7 @@ class Perfil():
             ON
                 tPost.id_user = tUser.id_user
             WHERE
-                tPost.id_wall = {id_wall}
+                tPost.id_wall = {cls.owner_user['id_wall']}
             ''')
         posts = DB.cursor.fetchall()
 
@@ -328,7 +326,7 @@ class Perfil():
         opcao_postagem = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes_postagem)
 
         if opcao_postagem == 1:
-            pass  # TODO: criar postagem
+            Mural(cls.owner_user['id_wall']).fazer_postagem()
         elif opcao_postagem > 1:
             # Interagir com uma postagem
             post_interagido = posts[opcao_postagem - 2]
@@ -362,10 +360,10 @@ class Perfil():
                 opcao = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
 
                 if opcao == 1:
-                    pass  # TODO: postar comentario
+                    Mural(cls.owner_user['id_wall']).fazer_comentario(post_interagido['id_post'])
                 elif opcao > 1:
                     # Interagir com comentário
-                    opcoes = [['Cancelar'], ['Responder'], ['Ver respostas']]
+                    opcoes = [['Cancelar'], ['Ver respostas']]
 
                     # Só quem fez o comentário ou o dono do perfil pode remove-lô
                     if comentarios[opcao - 2]['id_user'] == State.usuario_atual['id_user'] or cls.owner_user['id_user'] == State.usuario_atual['id_user']:
@@ -373,8 +371,6 @@ class Perfil():
 
                     opcao_comentario = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
                     if opcao_comentario == 1:
-                        pass  # TODO: postar resposta
-                    elif opcao_comentario == 2:
                         # Ver respostas
                         DB.cursor.execute(f'''
                             SELECT
@@ -394,7 +390,7 @@ class Perfil():
                         opcao_resposta = menu_opcoes('INTERAGIR COM RESPOSTA', opcoes_resposta)
 
                         if opcao_resposta == 1:
-                            pass  # TODO: responder
+                            Mural(cls.owner_user['id_wall']).fazer_resposta(comentarios[opcao - 2]['id_comment'])
                         elif opcao_resposta > 1:
                             # Interagir com resposta
                             opcoes = [['Cancelar']]

@@ -52,23 +52,23 @@ PERFIL
         (x) DESFAZER AMIZADE (DONO DO PERFIL)
         (x) BLOQUEAR (DONO DO PERFIL)
     (x) VER GRUPOS (ESCOLHE NÚMERO)
-        ( ) VISITAR GRUPO
+        (x) VISITAR GRUPO
         (x) SOLICITAR ENTRADA NO GRUPO (SE NÃO FOR DO GRUPO)
         (x) SAIR DO GRUPO (DONO DO PERFIL)
     (x) VER SOLICITAÇÕES (ESCOLHE NÚMERO) (DONO DO PERFIL)
         (x) ACEITAR
         (x) REJEITAR
     (x) VER MURAL
-        ( ) CRIAR POST
-            ( ) DEFINIR PATH DA IMAGEM
-            ( ) ESCREVER TEXTO
+        (x) CRIAR POST
+            (x) DEFINIR PATH DA IMAGEM
+            (x) ESCREVER TEXTO
         (x) REMOVER POST (DONO DO PERFIL E AUTOR)
         (x) VISUALIZAR COMENTÁRIOS
             (x) REMOVER COMENTÁRIO (DONO DO PERFIL E AUTOR)
-            (!) COMENTAR
+            (x) COMENTAR
             (x) VISUALIZAR RESPOSTAS
             (x) REMOVER RESPOSTA (DONO DO PERFIL E AUTOR)
-            ( ) RESPONDER
+            (x) RESPONDER
 
     (x) CRIAR GRUPO (DONO DO PERFIL)
         (x) DEFINIR NOME
@@ -101,13 +101,13 @@ PERFIL
         (x) REJEITAR
 
     (x) VER MURAL
-        ( ) CRIAR POST
-            ( ) DEFINIR PATH DA IMAGEM
-            ( ) ESCREVER TEXTO
+        (x) CRIAR POST
+            (x) DEFINIR PATH DA IMAGEM
+            (x) ESCREVER TEXTO
         (x) REMOVER POST (ADM E AUTOR)
         (x) VISUALIZAR COMENTÁRIOS
             (x) REMOVER COMENTÁRIO (ADM E AUTOR)
-            ( ) COMENTAR
+            (x) COMENTAR
             (x) VISUALIZAR RESPOSTAS
                 (x) REMOVER RESPOSTA (ADM E AUTOR)
-                ( ) RESPONDER
+                (x) RESPONDER
