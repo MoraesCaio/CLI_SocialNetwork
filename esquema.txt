@@ -70,10 +70,10 @@ PERFIL
             (x) REMOVER RESPOSTA (DONO DO PERFIL E AUTOR)
             ( ) RESPONDER
 
-    ( ) CRIAR GRUPO (DONO DO PERFIL)
-        ( ) DEFINIR NOME
-        ( ) DEFINIR DESCRIÇÃO
-        ( ) DEFINIR PATH DA FOTO
+    (x) CRIAR GRUPO (DONO DO PERFIL)
+        (x) DEFINIR NOME
+        (x) DEFINIR DESCRIÇÃO
+        (x) DEFINIR PATH DA FOTO
 
 ( ) GRUPO
     (x) NOME

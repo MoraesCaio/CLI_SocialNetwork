@@ -35,6 +35,7 @@ class Perfil():
         if cls.owner_user['id_user'] == State.usuario_atual['id_user']:
             # Dono do perfil está visualizando o próprio perfil
             opcoes.append(['Ver Solicitações', cls.ver_solicitacoes])
+            opcoes.append(['Criar Grupo', cls.criar_grupo])
 
         opcao = menu_opcoes('OPÇÕES DO PERFIL', opcoes)
         if opcao != 0:
@@ -435,7 +436,24 @@ class Perfil():
 
     @classmethod
     def criar_grupo(cls):
-        pass
+        print('CRIANDO NOVO GRUPO')
+        nome = input('Nome: ')
+        desc = input('Descrição: ')
+        path = input('Path da imagem: ')
+
+        if nome and desc:
+            id_group = DB.new_group(nome, desc, path)
+
+            # Usuário que criou o grupo é automaticamente administrador
+            DB.cursor.execute(f'''
+                INSERT INTO
+                    rUser_Group(id_user, id_group, status)
+                VALUES
+                    ({State.usuario_atual['id_user']}, {id_group}, 2)
+                ''')
+            DB.connection.commit()
+            print('Grupo criado.')
+
 
     @classmethod
     def is_visible(cls):
