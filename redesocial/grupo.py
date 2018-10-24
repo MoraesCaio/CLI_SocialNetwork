@@ -1,42 +1,42 @@
 from redesocial import State
 from redesocial.database import DB
-from redesocial.utils import menu_opcoes
+from redesocial.utils import menu_opcoes, ver_imagem
 
 
-class LoginManager:
+class Grupo():
 
-    @classmethod
-    def login(cls):
-        DB.cursor.execute('SELECT name, city FROM tUser')
-        users = DB.cursor.fetchall()
-
-        opcoes = [['Cancelar']] + [[f'{user["name"]}, {user["city"]}'] for user in users]
-
-        opcao = menu_opcoes('USUÁRIOS DISPONÍVEIS PARA LOGIN', opcoes)
-
-        if not opcao:
-            return
-        else:
-
-            DB.cursor.execute(f'SELECT * FROM tUser WHERE id_user={opcao}')
-
-            if State.usuario_atual is None:
-                State.usuario_atual = DB.cursor.fetchone()
-            else:
-                new_login = DB.cursor.fetchone()
-                opcao = input(f'Você já está logado como {State.usuario_atual["name"]}. Deseja logar como {new_login["name"]}? [S/n]: ')
-
-                if opcao.lower() != 'n':
-                    State.usuario_atual = new_login
-
-            print(f'\nVOCÊ ESTÁ LOGADO COMO: {State.usuario_atual["name"]}')
-
-            return
+    grupo = None
 
     @classmethod
-    def logout(cls):
-        opcao = input('DESEJA REALIZAR LOGOUT? [s/N]')
+    def __init__(cls, grupo):
+        if type(grupo) == int:
+            id_group = grupo
+            cls.DB.cursor.execute(f'SELECT * FROM tUser WHERE id_group = {id_group}')
+            cls.grupo = cls.DB.fetchone()
+        elif type(grupo) == dict:
+            cls.grupo = grupo
 
-        if opcao.lower() == 's':
-            State.usuario_atual = None
-            print('LOGOUT REALIZADO COM SUCESSO!')
+    @classmethod
+    def ver_menu(cls):
+        print(f"Nome: {cls.grupo['name']}")
+        print(f"Descrição: {cls.grupo['description']}")
+
+    @classmethod
+    def configuracoes_grupo(cls):
+        pass
+
+    @classmethod
+    def ver_foto(cls):
+        ver_imagem(cls.grupo)
+
+    @classmethod
+    def ver_membros(cls):
+        pass
+
+    @classmethod
+    def ver_solicitacoes(cls):
+        pass
+
+    @classmethod
+    def ver_mural(cls):
+        pass
