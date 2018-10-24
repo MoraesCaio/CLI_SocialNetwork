@@ -1,6 +1,8 @@
 from redesocial import State
 from redesocial.database import DB
-from redesocial.utils import menu_opcoes, ver_imagem
+from redesocial.utils import menu_opcoes, ver_imagem, imagem_blob
+from PIL import Image
+
 
 class Grupo():
 
@@ -41,7 +43,7 @@ class Grupo():
             ['Cancelar'],
             ['Visitar Grupo'],
             ['Ver Membros']
-            ]
+        ]
 
         if not status:
             opcoes_grupo.append(['Solicitar Entrada'])
@@ -99,7 +101,97 @@ class Grupo():
 
     @classmethod
     def configuracoes_grupo(cls):
-        pass
+        opcoes = [
+            ['Voltar', None],
+            ['Definir Visibilidade', cls.definir_visibilidade],
+            ['Atualizar Nome', cls.atualizar_nome],
+            ['Atualizar Descrição', cls.atualizar_descrição],
+            ['Atualizar Imagem', cls.atualizar_imagem]
+        ]
+
+        while True:
+            opcao = menu_opcoes('CONFIGURAÇÕES DE GRUPO', opcoes)
+            if not opcao:
+                return
+            opcoes[opcao][1]()
+
+    @classmethod
+    def definir_visibilidade(cls):
+        opcoes = [
+            ['Cancelar'],
+            ['Perfil Privado'],
+            ['Perfil Público']
+        ]
+
+        while True:
+            opcao = menu_opcoes('VISIBILIDADE', opcoes)
+
+            if not opcao:
+                return
+
+            DB.cursor.execute(f'''
+                UPDATE
+                    tGroup
+                SET
+                    visibility={opcao-1}
+                WHERE
+                    id_group={cls.grupo["id_group"]}
+                ''')
+            DB.connection.commit()
+
+            print(f'Visibilidade atualizada: {opcoes[opcao]}')
+
+    @classmethod
+    def atualizar_nome(cls):
+        nome = input(f'Insira o NOME DO GRUPO com mais de 4 caracteres e menos de 255 caracteres (ou Aperte ENTER para cancelar).')
+
+        while True:
+            if not len(nome):
+                return
+            elif len(nome) >= 255 or len(nome) < 4:
+                nome = input(f'NOME DO GRUPO inválido. Tente novamente (ou Aperte ENTER para cancelar).\n')
+            else:
+                DB.cursor.execute("UPDATE tGroup SET name=%s WHERE id_group=%s", (nome, cls.grupo['id_group']))
+                DB.connection.commit()
+                print(f'NOME DO GRUPO ATUALIZADO para: {nome}')
+                return
+
+    @classmethod
+    def atualizar_cidade(cls):
+        cidade = input(f'Insira sua CIDADE com mais de 4 caracteres e menos de 255 caracteres. (ou Aperte ENTER para cancelar)')
+
+        while True:
+            if not len(cidade):
+                return
+            elif len(cidade) >= 255 or len(cidade) < 4:
+                cidade = input(f'CIDADE inválida. Tente novamente. (ou Aperte ENTER para cancelar)')
+            else:
+                DB.cursor.execute("UPDATE tUser SET city=%s WHERE id_group=%s", (cidade, cls.grupo['id_group']))
+                DB.connection.commit()
+                print(f'CIDADE ATUALIZADA para: {cidade}')
+                return
+
+    @classmethod
+    def atualizar_imagem(cls):
+        while True:
+            path = input(f'Insira o caminho da IMAGEM DO GRUPO. (ou Aperte ENTER para cancelar)')
+            if not len(path):
+                return
+            else:
+                try:
+                    Image.open(path)
+                except:
+                    option = input('Não foi possível carregar a IMAGEM DO GRUPO. Deseja utilizar a imagem padrão? [s/N]')
+                    if option.lower() == 's':
+                        img_blob = imagem_blob(State.imagem_usuario_padrao)
+                        DB.cursor.execute("UPDATE tUser SET image=%s WHERE id_group=%s", (img_blob, cls.grupo['id_group']))
+                        DB.connection.commit()
+                        return
+                else:
+                    img_blob = imagem_blob(path)
+                    DB.cursor.execute("UPDATE tUser SET image=%s WHERE id_group=%s", (img_blob, cls.grupo['id_group']))
+                    DB.connection.commit()
+                    return
 
     @classmethod
     def ver_foto(cls):
@@ -165,9 +257,9 @@ class Grupo():
             elif opcao_membro == 3:
                 # Banir / desbanir
                 if status_do_membro == 3:
-                    novo_status = 1 # Desbanir
+                    novo_status = 1  # Desbanir
                 elif status_do_membro != 3:
-                    novo_status = 3 # Banir
+                    novo_status = 3  # Banir
 
                 DB.cursor.execute(f'''
                     UPDATE
@@ -185,9 +277,9 @@ class Grupo():
             elif opcao_membro == 4:
                 # Dar / remover admin
                 if status_do_membro == 2:
-                    novo_status = 1 # Remover admin
+                    novo_status = 1  # Remover admin
                 elif status_do_membro == 1:
-                    novo_status = 2 # Dar admin
+                    novo_status = 2  # Dar admin
 
                 DB.cursor.execute(f'''
                     UPDATE
@@ -227,7 +319,7 @@ class Grupo():
             opcao_solicitacao = menu_opcoes(
                 'INTERAGIR COM SOLICITACAO',
                 [['Cancelar'], ['Aceitar'], ['Recusar']]
-                )
+            )
 
             if opcao_solicitacao == 1:
                 DB.cursor.execute(f'''

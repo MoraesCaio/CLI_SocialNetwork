@@ -59,7 +59,6 @@ class Perfil():
             opcao = menu_opcoes('CONFIGURAÇÕES DE CONTA', opcoes)
             if not opcao:
                 return
-            print(type(opcoes[opcao]))
             opcoes[opcao][1]()
 
     @classmethod
