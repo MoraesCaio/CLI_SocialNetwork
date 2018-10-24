@@ -46,7 +46,7 @@ class Grupo():
                 opcoes_grupo.append(['Solicitar Entrada', cls.solicitar_entrada])
             elif status['status'] == 0:
                 opcoes_grupo.append(['Cancelar Solicitação', cls.cancelar_solicitacao])
-            elif (status['status'] == 1 or status['status'] == 2):
+            elif cls.eh_visivel:
                 opcoes_grupo.append(['Ver Mural', cls.ver_mural])
                 opcoes_grupo.append(['Ver Membros', cls.ver_membros])
                 opcoes_grupo.append(['Sair do Grupo', cls.sair_grupo])

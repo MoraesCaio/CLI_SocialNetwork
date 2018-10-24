@@ -43,7 +43,7 @@ class DB:
         DB.connection.commit()
 
     @classmethod
-    def new_group(cls, name, description, img_path, visibility=1):
+    def new_group(cls, name, description, img_path, creator_user, visibility=1):
         if not os.path.isfile(img_path):
             img_path = 'groups/group0.jpg'
 
@@ -56,4 +56,11 @@ class DB:
         # Retornar id do grupo criado
         DB.cursor.execute('SELECT id_group FROM tGroup')
         ids = DB.cursor.fetchall()
-        return ids[-1]['id_group']
+        id_grupo = ids[-1]['id_group']
+
+        id_creator = creator_user['id_user'] if type(creator_user) == dict else int(creator_user)
+
+        DB.cursor.execute('INSERT INTO rUser_Group (id_user, id_group, status) VALUES (%s, %s, %s)', (id_creator, id_grupo, 2))
+        DB.connection.commit()
+
+        return id_grupo
