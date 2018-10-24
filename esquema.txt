@@ -100,14 +100,14 @@ PERFIL
         (x) ACEITAR
         (x) REJEITAR
 
-    ( ) VER MURAL
+    (x) VER MURAL
         ( ) CRIAR POST
             ( ) DEFINIR PATH DA IMAGEM
             ( ) ESCREVER TEXTO
-        ( ) REMOVER POST (ADM E AUTOR)
-        ( ) VISUALIZAR COMENTÁRIOS
-            ( ) REMOVER COMENTÁRIO (ADM E AUTOR)
+        (x) REMOVER POST (ADM E AUTOR)
+        (x) VISUALIZAR COMENTÁRIOS
+            (x) REMOVER COMENTÁRIO (ADM E AUTOR)
             ( ) COMENTAR
-            ( ) VISUALIZAR RESPOSTAS
-                ( ) REMOVER RESPOSTA (ADM E AUTOR)
+            (x) VISUALIZAR RESPOSTAS
+                (x) REMOVER RESPOSTA (ADM E AUTOR)
                 ( ) RESPONDER
