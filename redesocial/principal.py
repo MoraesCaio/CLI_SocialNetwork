@@ -3,6 +3,7 @@ from redesocial.login import LoginManager
 from redesocial.utils import menu_opcoes
 from redesocial.database import DB
 from redesocial.perfil import Perfil
+from redesocial.grupo import Grupo
 
 
 class MenuPrincipal():
@@ -62,30 +63,4 @@ class MenuPrincipal():
         opcao = menu_opcoes('INTERAGIR COM GRUPO', opcoes)
 
         if opcao != 0:
-            DB.cursor.execute(f'''
-                SELECT
-                    status
-                FROM
-                    rUser_Group
-                WHERE
-                    id_user = {State.usuario_atual['id_user']}
-                AND
-                    id_group = {grupos[opcao - 1]['id_group']}
-                ''')
-            status = DB.cursor.fetchone()
-
-            opcoes_grupo = [
-                ['Cancelar'],
-                ['Visitar Grupo']
-                ]
-
-            if status:
-                if status == 0:
-                    opcoes_grupo.append(['Cancelar Solicitação'])
-                elif status == 1:
-                    opcoes_grupo.append(['Sair do Grupo'])
-            else:
-                opcoes_grupo.append(['Solicitar Entrada'])
-
-            opcao_grupo = menu_opcoes('INTERAGIR COM GRUPO', opcoes_grupo)
-            # TODO: tratar seleção
+            Grupo(grupos[opcao - 1]['id_group']).ver_menu()
