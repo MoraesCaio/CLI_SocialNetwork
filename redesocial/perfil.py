@@ -42,7 +42,6 @@ class Perfil():
 
         while True:
             opcao = menu_opcoes('OPÇÕES DO PERFIL', opcoes)
-            print(type(opcao))
             if not opcao:
                 return
             opcoes[opcao][1]()
@@ -53,7 +52,7 @@ class Perfil():
             ['Voltar', None],
             ['Definir Visibilidade', cls.definir_visibilidade],
             ['Atualizar Nome', cls.atualizar_nome],
-            ['Atualizar Descrição', cls.atualizar_cidade],
+            ['Atualizar Cidade', cls.atualizar_cidade],
             ['Atualizar Imagem', cls.atualizar_imagem]
         ]
 
