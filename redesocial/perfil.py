@@ -1,6 +1,7 @@
 from redesocial import State
 from redesocial.database import DB
 from redesocial.utils import menu_opcoes, ver_imagem
+from redesocial.grupo import Grupo
 
 
 class Perfil():
@@ -91,7 +92,6 @@ class Perfil():
     @classmethod
     def interagir_com_usuario(cls, id_interagido):
         # Ver qual o relacionamento do usuário interagido com o usuário logado
-        print(f'id interagido:{id_interagido}')
         DB.cursor.execute(f'''
             -- Lado esquerdo do relacionamento
             SELECT
@@ -240,7 +240,10 @@ class Perfil():
 
         if grupos:
             opcoes = [['Voltar ao menu principal']] + [[f'{grupo["name"]}'] for grupo in grupos]
-            # TODO: tratar opções do grupo
+            opcao = menu_opcoes('INTERAGIR COM GRUPO', opcoes)
+
+            if opcao != 0:
+                Grupo.interagir_com_grupo(grupos[opcao - 1]['id_group'])
         else:
             print('Esse usuário não está em nenhum grupo.')
 
