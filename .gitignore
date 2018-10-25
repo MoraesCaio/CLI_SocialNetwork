@@ -6,3 +6,4 @@
 **/*.ico
 **/*.tiff
 **/*.pyc
+**/.fuse_hidden*
