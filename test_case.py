@@ -167,6 +167,66 @@ def new_group(name, description, visibility=1, image='null'):
     id_wall += 1
 
 
+def new_user_group(user_id, group_id, status):
+    DB.cursor.execute(f'''
+        INSERT INTO
+            rUser_Group (id_user, id_group, status)
+        VALUES
+            (%s, %s, %s)
+        ''', (user_id, group_id, status))
+    DB.connection.commit()
+
+
+def new_user_user(id_user_from, id_user_to, status):
+    DB.cursor.execute(f'''
+        INSERT INTO
+            rUser_User (id_user_from, id_user_to, status)
+        VALUES
+            (%s, %s, %s)
+        ''', (id_user_from, id_user_to, status))
+    DB.connection.commit()
+
+
+def new_post(id_user, id_wall, text, image_path='no image'):
+
+    if not os.path.isfile(image_path):
+        image_path = f'posts/post0.jpg'
+
+    img_blob = imagem_blob(image_path)
+
+    DB.cursor.execute(f'''
+        INSERT INTO
+            tPost(id_user, id_wall, text, image)
+        VALUES
+            (%s, %s, %s, %s)
+        ''', (id_user, id_wall, text, img_blob))
+
+    DB.connection.commit()
+
+
+def new_comment(id_user, id_post, text):
+
+    DB.cursor.execute(f'''
+        INSERT INTO
+            tComment(id_user, id_post, text)
+        VALUES
+            (%s, %s, %s)
+        ''', (id_user, id_post, text))
+
+    DB.connection.commit()
+
+
+def new_reply(id_user, id_comment, text):
+    DB.cursor.execute(f'''
+        INSERT INTO
+            tReply(id_user, id_comment, text)
+        VALUES
+            (%s, %s, %s)
+        ''', (id_user, id_comment, text))
+
+    DB.connection.commit()
+
+
 def populate_tables():
     new_user('Caio Moraes', 'João Pessoa')
     new_user('Samuel Moura', 'João Pessoa')
@@ -181,6 +241,22 @@ def populate_tables():
     new_group('CI', 'Grupo do CI-UFPB')
     new_group('CT', 'Grupo do CT-UFPB')
     new_group('DEMID', 'Grupo do DEMID-UFPB')
+
+    new_user_user(1, 2, 1)
+    new_user_user(1, 3, 1)
+    new_user_user(1, 4, 1)
+
+    new_user_group(1, 1, 2)
+    new_user_group(2, 1, 1)
+    new_user_group(3, 1, 1)
+    new_user_group(4, 1, 1)
+
+    new_post(2, 9, 'Samuel Post Sem Comment UFPB', 'no image')
+    new_post(3, 9, 'Manuela Post Com comment UFPB', 'no image')
+    new_comment(2, 2, 'Samuel Comment em Manuela Post')
+    new_comment(4, 2, 'Priscila Comment em Manuela Post')
+    new_reply(2, 2, 'Samuel Reply em Priscila Comment')
+    new_reply(3, 2, 'Manuela Reply em Priscila Comment')
 
 
 drop_tables()
