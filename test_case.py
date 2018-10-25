@@ -76,20 +76,24 @@ def create_tables():
     DB.cursor.execute('''CREATE TABLE IF NOT EXISTS tComment(
         id_comment INTEGER NOT NULL AUTO_INCREMENT,
         id_user INTEGER NOT NULL,
+        id_wall INTEGER NOT NULL,
         id_post INTEGER NOT NULL,
         text VARCHAR(512) NOT NULL,
         PRIMARY KEY (id_comment),
         FOREIGN KEY (id_user) REFERENCES tUser(id_user),
+        FOREIGN KEY (id_wall) REFERENCES tWall(id_wall),
         FOREIGN KEY (id_post) REFERENCES tPost(id_post) ON DELETE CASCADE
     );''')
 
     DB.cursor.execute('''CREATE TABLE IF NOT EXISTS tReply(
         id_reply INTEGER NOT NULL AUTO_INCREMENT,
         id_user INTEGER NOT NULL,
+        id_wall INTEGER NOT NULL,
         id_comment INTEGER NOT NULL,
         text VARCHAR(512) NOT NULL,
         PRIMARY KEY (id_reply),
         FOREIGN KEY (id_user) REFERENCES tUser(id_user),
+        FOREIGN KEY (id_wall) REFERENCES tWall(id_wall),
         FOREIGN KEY (id_comment) REFERENCES tComment(id_comment) ON DELETE CASCADE
     );''')
 
@@ -187,7 +191,42 @@ def new_user_user(id_user_from, id_user_to, status):
     DB.connection.commit()
 
 
-def new_post(id_user, id_wall, text, image_path='no image'):
+def new_post_user(id_user, id_wall_owner, text, image_path='no image'):
+    DB.cursor.execute(f'''
+        SELECT
+            id_wall
+        FROM
+            tUser
+        WHERE
+            id_user={id_wall_owner}
+        ''')
+    id_wall = DB.cursor.fetchone()['id_wall']
+
+    if not os.path.isfile(image_path):
+        image_path = f'posts/post0.jpg'
+
+    img_blob = imagem_blob(image_path)
+
+    DB.cursor.execute(f'''
+        INSERT INTO
+            tPost(id_user, id_wall, text, image)
+        VALUES
+            (%s, %s, %s, %s)
+        ''', (id_user, id_wall, text, img_blob))
+
+    DB.connection.commit()
+
+
+def new_post_group(id_user, id_group, text, image_path='no image'):
+    DB.cursor.execute(f'''
+        SELECT
+            id_wall
+        FROM
+            tGroup
+        WHERE
+            id_group={id_group}
+        ''')
+    id_wall = DB.cursor.fetchone()['id_wall']
 
     if not os.path.isfile(image_path):
         image_path = f'posts/post0.jpg'
@@ -205,24 +244,43 @@ def new_post(id_user, id_wall, text, image_path='no image'):
 
 
 def new_comment(id_user, id_post, text):
+    DB.cursor.execute(f'''
+        SELECT
+            id_wall
+        FROM
+            tPost
+        WHERE
+            id_post={id_post}
+        ''')
+    id_wall = DB.cursor.fetchone()['id_wall']
 
     DB.cursor.execute(f'''
         INSERT INTO
-            tComment(id_user, id_post, text)
+            tComment(id_user, id_wall, id_post, text)
         VALUES
-            (%s, %s, %s)
-        ''', (id_user, id_post, text))
+            (%s, %s, %s, %s)
+        ''', (id_user, id_wall, id_post, text))
 
     DB.connection.commit()
 
 
 def new_reply(id_user, id_comment, text):
     DB.cursor.execute(f'''
+        SELECT
+            id_wall
+        FROM
+            tComment
+        WHERE
+            id_comment={id_comment}
+        ''')
+    id_wall = DB.cursor.fetchone()['id_wall']
+
+    DB.cursor.execute(f'''
         INSERT INTO
-            tReply(id_user, id_comment, text)
+            tReply(id_user, id_wall, id_comment, text)
         VALUES
-            (%s, %s, %s)
-        ''', (id_user, id_comment, text))
+            (%s, %s, %s, %s)
+        ''', (id_user, id_wall, id_comment, text))
 
     DB.connection.commit()
 
@@ -256,8 +314,8 @@ def populate_tables():
     new_user_group(3, 1, 1)
     new_user_group(4, 1, 1)
 
-    new_post(2, 9, 'Samuel Post Sem Comment UFPB', 'no image')
-    new_post(3, 9, 'Manuela Post Com comment UFPB', 'no image')
+    new_post_group(2, 1, 'Samuel Post Sem Comment UFPB', 'no image')
+    new_post_group(3, 1, 'Manuela Post Com comment UFPB', 'no image')
     new_comment(2, 2, 'Samuel Comment em Manuela Post')
     new_comment(4, 2, 'Priscila Comment em Manuela Post')
     new_reply(2, 2, 'Samuel Reply em Priscila Comment')

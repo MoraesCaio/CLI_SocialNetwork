@@ -41,7 +41,7 @@ class MenuPrincipal():
     def ver_lista_usuarios(cls):
         DB.cursor.execute(f'''
             SELECT
-                id_user, name, city
+                *
             FROM
                 tUser
             WHERE
@@ -78,7 +78,7 @@ class MenuPrincipal():
     def ver_lista_grupos(cls):
         DB.cursor.execute(f'''
             SELECT
-                id_group, name
+                *
             FROM
                 tGroup
             WHERE
