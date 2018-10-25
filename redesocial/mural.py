@@ -56,10 +56,10 @@ class Mural():
         if text:
             DB.cursor.execute('''
                 INSERT INTO
-                    tComment(id_post, id_user, text)
+                    tComment(id_wall, id_post, id_user, text)
                 VALUES
-                    (%s, %s, %s)
-                ''', (id_post, State.usuario_atual['id_user'], text)
+                    (%s, %s, %s, %s)
+                ''', (cls.id_mural, id_post, State.usuario_atual['id_user'], text)
             )
             print('Comentário feito.')
             DB.connection.commit()
@@ -74,12 +74,15 @@ class Mural():
         if text:
             DB.cursor.execute('''
                 INSERT INTO
-                    tReply(id_comment, id_user, text)
+                    tReply(id_wall, id_comment, id_user, text)
                 VALUES
-                    (%s, %s, %s)
-                ''', (id_comment, State.usuario_atual['id_user'], text)
+                    (%s, %s, %s, %s)
+                ''', (cls.id_mural, id_comment, State.usuario_atual['id_user'], text)
             )
             print('Resposta feita.')
             DB.connection.commit()
         else:
             print('O campo de texto não pode ser vazio.')
+
+    @classmethod
+    def get_posts_from
