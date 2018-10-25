@@ -212,6 +212,7 @@ class Perfil():
                     cls.menu_usuario(amigos[opcao - 1])
             else:
                 print('Esse usuário não tem amigos.')
+                return
 
     @classmethod
     def menu_usuario(cls, usuario):
@@ -252,24 +253,7 @@ class Perfil():
                 elif opcao > 1:
                     opcoes[opcao][1](usuario)
 
-                    # Remover postagens, comentários e respostas do usuário bloqueado
-                    # TODO: consertar isso
-                    """DB.cursor.execute(f'''
-                        DELETE FROM
-                            tPost
-                        WHERE (
-                            id_user = {State.usuario_atual['id_user']}
-                        AND
-                            id_wall = {cls.owner_user['id_wall']}
-                        ) OR (
-                            id_user = {cls.owner_user['id_user']}
-                        AND
-                            id_wall = {State.usuario_atual['id_wall']}
-                        )
-                        ''')"""
-
                     DB.connection.commit()
-                    print('Usuário bloqueado.')
 
     @classmethod
     def desfazer_solicitacao(cls, usuario):
@@ -353,6 +337,20 @@ class Perfil():
         for grupo in grupos_administrados:
             # Deletando Respostas, Comentários e Posts
             cls.deletar_conteudo_em_grupo(usuario, grupo)
+
+            # Bloqueando usuário do grupo
+            DB.cursor.execute(f'''
+                UPDATE
+                    rUser_Group
+                SET
+                    status = 3
+                WHERE
+                    id_group = {grupo['id_group']}
+                AND
+                    id_user = {usuario['id_user']}
+                ''')
+            DB.connection.commit()
+        print('Usuário bloqueado.')
 
     @classmethod
     def bloquear_conhecido(cls, usuario):
@@ -825,7 +823,6 @@ class Perfil():
                 )
         ''')
         friends = DB.cursor.fetchall()
-        print('len(friends)', len(friends))
         return friends
 
     @classmethod
@@ -991,5 +988,4 @@ class Perfil():
         ''')
 
         grupos_administrados = DB.cursor.fetchall()
-        print(len(grupos_administrados))
         return grupos_administrados

@@ -24,7 +24,8 @@ class Mural():
         while True:
             img_path = input('Path para IMAGEM DO POST: ')
             if not len(img_path):
-                return
+                img_path = State.imagem_post_padrao
+                break
             else:
                 try:
                     Image.open(img_path)
