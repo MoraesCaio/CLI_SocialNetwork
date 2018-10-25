@@ -410,7 +410,7 @@ class Perfil():
                     WHERE
                         id_user = {State.usuario_atual['id_user']}
                     AND
-                        status != 2
+                        status = 3
                 )
             ''')
         grupos = DB.cursor.fetchall()
@@ -485,8 +485,8 @@ class Perfil():
                         AND
                             id_user_to = {cls.owner_user['id_user']}
                         ''')
-                    print('Solicitação aceita!')
                     DB.connection.commit()
+                    print('Solicitação aceita!')
                 elif aceita == 2:
                     DB.cursor.execute(f'''
                         DELETE FROM
@@ -498,8 +498,8 @@ class Perfil():
                         AND
                             status = 0
                         ''')
-                    print('Solicitação recusada.')
                     DB.connection.commit()
+                    print('Solicitação recusada.')
         else:
             print('Não há nenhuma solicitação para esse usuário.')
 

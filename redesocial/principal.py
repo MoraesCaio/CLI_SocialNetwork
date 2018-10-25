@@ -90,7 +90,7 @@ class MenuPrincipal():
                     WHERE
                         id_user = {State.usuario_atual['id_user']}
                     AND
-                        status != 2
+                        status = 3
                 )
             ''')
         grupos = DB.cursor.fetchall()
