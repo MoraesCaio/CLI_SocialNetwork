@@ -24,11 +24,6 @@ class Perfil():
     def ver_menu(cls):
         while True:
             print('\n---- PERFIL ----')
-
-            if cls.is_blocked():
-                print('Esse usuário te bloqueou.')
-                return
-
             print(f"Nome: {cls.owner_user['name']}")
             print(f"Cidade: {cls.owner_user['city']}")
 
@@ -36,6 +31,18 @@ class Perfil():
                 ['Voltar ao menu principal', None],
                 ['Ver foto', cls.ver_foto],
             ]
+
+            # Menu reduzido por conta do bloqueio: FOTO ou VOLTAR
+            if cls.is_blocked_either(State.usuario_atual['id_user'], cls.owner_user['id_user']):
+                print('Usuário bloqueado.')
+                opcao = menu_opcoes('OPÇÕES DO PERFIL', opcoes)
+
+                if not opcao:
+                    return
+
+                opcoes[opcao][1]()
+                # ignore rest of loop
+                continue
 
             if cls.eh_visivel() or cls.owner_user['id_user'] == State.usuario_atual['id_user']:
                 opcoes.append(['Ver Amigos', cls.ver_amigos])
@@ -161,7 +168,7 @@ class Perfil():
             amigos = cls.get_amigos(cls.owner_user['id_user'])
 
             if amigos:
-                opcoes = [['Cancelar']]  # + [[f'''{amigo['name']}, de {amigo['city']}'''] for amigo in amigos]
+                opcoes = [['Cancelar']]
 
                 for amigo in amigos:
                     # Checagem se são amigos mútuos só acontece em perfil de outras pessoas
@@ -339,6 +346,14 @@ class Perfil():
         else:
             cls.bloquear_desconhecido(usuario)
 
+        # Deletando Respostas, Comentários e Posts
+        cls.deletar_conteudo(usuario)
+
+        grupos_administrados = cls.get_grupos_administrados()
+        for grupo in grupos_administrados:
+            # Deletando Respostas, Comentários e Posts
+            cls.deletar_conteudo_em_grupo(usuario, grupo)
+
     @classmethod
     def bloquear_conhecido(cls, usuario):
         DB.cursor.execute(f'''
@@ -361,6 +376,7 @@ class Perfil():
                 id_user_from = {usuario['id_user']}
             )
         ''')
+
         print('Bloqueio realizado com sucesso.')
 
     @classmethod
@@ -379,7 +395,7 @@ class Perfil():
         while True:
             DB.cursor.execute(f'''
                 SELECT
-                    tGroup.name, status, tGroup.id_group
+                    *
                 FROM
                     rUser_Group
                 INNER JOIN
@@ -444,7 +460,7 @@ class Perfil():
         while True:
             DB.cursor.execute(f'''
                 SELECT
-                    tUser.id_user, tUser.name, tUser.city
+                    *
                 FROM
                     rUser_User
                 INNER JOIN
@@ -759,13 +775,13 @@ class Perfil():
             -- Amigos
             -- Os convites de amizade confirmados que essa pessoa fez
             SELECT
-                tUser.id_user, tUser.name, tUser.city
+                *
             FROM
-                rUser_User
-            INNER JOIN
                 tUser
+            INNER JOIN
+                rUser_User
             ON
-                rUser_User.id_user_to = tUser.id_user
+                tUser.id_user = rUser_User.id_user_to
             WHERE
                 status = 1
             AND
@@ -785,13 +801,13 @@ class Perfil():
             -- Os convites de amizade que essa pessoa aceitou
             UNION
             SELECT
-                tUser.id_user, tUser.name, tUser.city
+                *
             FROM
-                rUser_User
-            INNER JOIN
                 tUser
+            INNER JOIN
+                rUser_User
             ON
-                rUser_User.id_user_from = tUser.id_user
+                tUser.id_user = rUser_User.id_user_from
             WHERE
                 status = 1
             AND
@@ -809,6 +825,7 @@ class Perfil():
                 )
         ''')
         friends = DB.cursor.fetchall()
+        print('len(friends)', len(friends))
         return friends
 
     @classmethod
@@ -839,3 +856,140 @@ class Perfil():
 
         relacionamento = DB.cursor.fetchone()
         return relacionamento
+
+    @classmethod
+    def deletar_respostas(cls, usuario):
+        DB.cursor.execute(f'''
+            DELETE FROM
+                tReply
+            WHERE
+            (
+                id_user={State.usuario_atual['id_user']}
+                    AND
+                id_wall={usuario['id_wall']}
+            )
+            OR
+            (
+                id_user={usuario['id_user']}
+                    AND
+                id_wall={State.usuario_atual['id_wall']}
+            )
+        ''')
+        DB.connection.commit()
+
+    @classmethod
+    def deletar_comentarios(cls, usuario):
+        DB.cursor.execute(f'''
+            DELETE FROM
+                tComment
+            WHERE
+            (
+                id_user={State.usuario_atual['id_user']}
+                    AND
+                id_wall={usuario['id_wall']}
+            )
+            OR
+            (
+                id_user={usuario['id_user']}
+                    AND
+                id_wall={State.usuario_atual['id_wall']}
+            )
+        ''')
+        DB.connection.commit()
+
+    @classmethod
+    def deletar_posts(cls, usuario):
+        DB.cursor.execute(f'''
+            DELETE FROM
+                tPost
+            WHERE
+            (
+                id_user={State.usuario_atual['id_user']}
+                    AND
+                id_wall={usuario['id_wall']}
+            )
+            OR
+            (
+                id_user={usuario['id_user']}
+                    AND
+                id_wall={State.usuario_atual['id_wall']}
+            )
+        ''')
+        DB.connection.commit()
+
+    @classmethod
+    def deletar_conteudo(cls, usuario):
+        cls.deletar_respostas(usuario)
+        cls.deletar_comentarios(usuario)
+        cls.deletar_posts(usuario)
+
+    @classmethod
+    def deletar_respostas_em_grupo(cls, usuario, grupo):
+        DB.cursor.execute(f'''
+            DELETE FROM
+                tReply
+            WHERE
+            (
+                id_user={usuario['id_user']}
+                    AND
+                id_wall={grupo['id_wall']}
+            )
+        ''')
+        DB.connection.commit()
+
+    @classmethod
+    def deletar_comentarios_em_grupo(cls, usuario, grupo):
+        DB.cursor.execute(f'''
+            DELETE FROM
+                tComment
+            WHERE
+            (
+                id_user={usuario['id_user']}
+                    AND
+                id_wall={grupo['id_wall']}
+            )
+        ''')
+        DB.connection.commit()
+
+    @classmethod
+    def deletar_posts_em_grupo(cls, usuario, grupo):
+        DB.cursor.execute(f'''
+            DELETE FROM
+                tPost
+            WHERE
+            (
+                id_user={usuario['id_user']}
+                    AND
+                id_wall={grupo['id_wall']}
+            )
+        ''')
+        DB.connection.commit()
+
+    @classmethod
+    def deletar_conteudo_em_grupo(cls, usuario, grupo):
+        cls.deletar_respostas_em_grupo(usuario, grupo)
+        cls.deletar_comentarios_em_grupo(usuario, grupo)
+        cls.deletar_posts_em_grupo(usuario, grupo)
+
+    @classmethod
+    def get_grupos_administrados(cls):
+        DB.cursor.execute(f'''
+            SELECT
+                *
+            FROM
+                tGroup
+            INNER JOIN
+                rUser_Group
+            ON
+                tGroup.id_group = rUser_Group.id_group
+            WHERE
+            (
+                id_user = {State.usuario_atual['id_user']}
+                    AND
+                status = 2
+            )
+        ''')
+
+        grupos_administrados = DB.cursor.fetchall()
+        print(len(grupos_administrados))
+        return grupos_administrados

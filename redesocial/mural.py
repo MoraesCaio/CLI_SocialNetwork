@@ -83,6 +83,3 @@ class Mural():
             DB.connection.commit()
         else:
             print('O campo de texto não pode ser vazio.')
-
-    @classmethod
-    def get_posts_from
