@@ -22,34 +22,36 @@ class Perfil():
 
     @classmethod
     def ver_menu(cls):
-        print('\n---- PERFIL ----')
-
-        if cls.is_blocked():
-            print('Esse usuário te bloqueou.')
-            return
-
-        print(f"Nome: {cls.owner_user['name']}")
-        print(f"Cidade: {cls.owner_user['city']}")
-
-        opcoes = [
-            ['Voltar ao menu principal', None],
-            ['Ver foto', cls.ver_foto],
-        ]
-
-        if cls.eh_visivel() or cls.owner_user['id_user'] == State.usuario_atual['id_user']:
-            opcoes.append(['Ver Amigos', cls.ver_amigos])
-            opcoes.append(['Ver Grupos', cls.ver_grupos])
-            opcoes.append(['Ver Mural', cls.ver_mural])
-
-        if cls.owner_user['id_user'] == State.usuario_atual['id_user']:
-            # Dono do perfil está visualizando o próprio perfil
-            opcoes.append(['Ver Solicitações', cls.ver_solicitacoes])
-            opcoes.append(['Configurações de Conta', cls.configuracoes_conta])
-
         while True:
+            print('\n---- PERFIL ----')
+
+            if cls.is_blocked():
+                print('Esse usuário te bloqueou.')
+                return
+
+            print(f"Nome: {cls.owner_user['name']}")
+            print(f"Cidade: {cls.owner_user['city']}")
+
+            opcoes = [
+                ['Voltar ao menu principal', None],
+                ['Ver foto', cls.ver_foto],
+            ]
+
+            if cls.eh_visivel() or cls.owner_user['id_user'] == State.usuario_atual['id_user']:
+                opcoes.append(['Ver Amigos', cls.ver_amigos])
+                opcoes.append(['Ver Grupos', cls.ver_grupos])
+                opcoes.append(['Ver Mural', cls.ver_mural])
+
+            if cls.owner_user['id_user'] == State.usuario_atual['id_user']:
+                # Dono do perfil está visualizando o próprio perfil
+                opcoes.append(['Ver Solicitações', cls.ver_solicitacoes])
+                opcoes.append(['Configurações de Conta', cls.configuracoes_conta])
+
             opcao = menu_opcoes('OPÇÕES DO PERFIL', opcoes)
+
             if not opcao:
                 return
+
             opcoes[opcao][1]()
 
     @classmethod
@@ -374,118 +376,127 @@ class Perfil():
 
     @classmethod
     def ver_grupos(cls):
-        DB.cursor.execute(f'''
-            SELECT
-                tGroup.name, status, tGroup.id_group
-            FROM
-                rUser_Group
-            INNER JOIN
-                tGroup
-            ON
-                rUser_Group.id_group = tGroup.id_group
-            WHERE
-                id_user = {cls.owner_user['id_user']}
-            AND
-                tGroup.id_group NOT IN(
-                    SELECT
-                        id_group
-                    FROM
-                        rUser_Group
-                    WHERE
-                        id_user = {State.usuario_atual['id_user']}
-                    AND
-                        status = 3
-                )
-            ''')
-        grupos = DB.cursor.fetchall()
-
-        if grupos:
-            opcoes = [['Voltar ao menu principal']]  # + [[f'{grupo["name"]}'] for grupo in grupos]
-
-            for grupo in grupos:
-                # Checagem de grupo mútuo só em perfil de outras pessoas
-                if State.usuario_atual['id_user'] != cls.owner_user['id_user']:
-                    DB.cursor.execute(f'''
+        while True:
+            DB.cursor.execute(f'''
+                SELECT
+                    tGroup.name, status, tGroup.id_group
+                FROM
+                    rUser_Group
+                INNER JOIN
+                    tGroup
+                ON
+                    rUser_Group.id_group = tGroup.id_group
+                WHERE
+                    id_user = {cls.owner_user['id_user']}
+                AND
+                    tGroup.id_group NOT IN(
                         SELECT
-                            status
+                            id_group
                         FROM
                             rUser_Group
                         WHERE
-                            (status = 1 OR status = 2)
-                        AND
-                            id_group = {grupo['id_group']}
-                        AND
                             id_user = {State.usuario_atual['id_user']}
-                        ''')
-                    mutuo = True if DB.cursor.fetchone() else False
+                        AND
+                            status = 3
+                    )
+                ''')
+            grupos = DB.cursor.fetchall()
+
+            if grupos:
+                opcoes = [['Voltar ao menu principal']]  # + [[f'{grupo["name"]}'] for grupo in grupos]
+
+                for grupo in grupos:
+                    # Checagem de grupo mútuo só em perfil de outras pessoas
+                    if State.usuario_atual['id_user'] != cls.owner_user['id_user']:
+                        DB.cursor.execute(f'''
+                            SELECT
+                                status
+                            FROM
+                                rUser_Group
+                            WHERE
+                                (status = 1 OR status = 2)
+                            AND
+                                id_group = {grupo['id_group']}
+                            AND
+                                id_user = {State.usuario_atual['id_user']}
+                            ''')
+                        mutuo = True if DB.cursor.fetchone() else False
+                    else:
+                        mutuo = False
+
+                    if mutuo:
+                        opcoes.append([f'{grupo["name"]} (GRUPO MÚTUO)'])
+                    else:
+                        opcoes.append([f'{grupo["name"]}'])
+
+                opcao = menu_opcoes('INTERAGIR COM GRUPO', opcoes)
+
+                if not opcao:
+                    return
                 else:
-                    mutuo = False
-
-                if mutuo:
-                    opcoes.append([f'{grupo["name"]} (GRUPO MÚTUO)'])
-                else:
-                    opcoes.append([f'{grupo["name"]}'])
-
-            opcao = menu_opcoes('INTERAGIR COM GRUPO', opcoes)
-
-            if opcao != 0:
-                Grupo(grupos[opcao - 1]['id_group']).ver_menu()
-        else:
-            print('Esse usuário não está em nenhum grupo.')
+                    Grupo(grupos[opcao - 1]).ver_menu()
+            else:
+                print('Esse usuário não está em nenhum grupo.')
+                return
 
     @classmethod
     def ver_solicitacoes(cls):
-        DB.cursor.execute(f'''
-            SELECT
-                tUser.id_user, tUser.name, tUser.city
-            FROM
-                rUser_User
-            INNER JOIN
-                tUser
-            ON
-                rUser_User.id_user_from = tUser.id_user
-            WHERE
-                id_user_to = {cls.owner_user['id_user']}
-            AND
-                status = 0
-            ''')
-        solicitacoes = DB.cursor.fetchall()
+        while True:
+            DB.cursor.execute(f'''
+                SELECT
+                    tUser.id_user, tUser.name, tUser.city
+                FROM
+                    rUser_User
+                INNER JOIN
+                    tUser
+                ON
+                    rUser_User.id_user_from = tUser.id_user
+                WHERE
+                    id_user_to = {cls.owner_user['id_user']}
+                AND
+                    status = 0
+                ''')
 
-        if solicitacoes:
-            opcoes = [['Cancelar']] + [[f'{solicitacao["name"]}'] for solicitacao in solicitacoes]
-            opcao = menu_opcoes('INTERAGIR COM SOLICITAÇÃO', opcoes)
+            solicitacoes = DB.cursor.fetchall()
 
-            if opcao != 0:
-                aceita = menu_opcoes('ACEITAR SOLICITAÇÃO?', [['Cancelar'], ['Aceitar'], ['Rejeitar']])
+            if solicitacoes:
+                opcoes = [['Cancelar']] + [[f'{solicitacao["name"]}'] for solicitacao in solicitacoes]
+                opcao = menu_opcoes('INTERAGIR COM SOLICITAÇÃO', opcoes)
 
-                if aceita == 1:
-                    DB.cursor.execute(f'''
-                        UPDATE
-                            rUser_User
-                        SET
-                            status = 1
-                        WHERE
-                            id_user_from = {solicitacoes[opcao - 1]['id_user']}
-                        AND
-                            id_user_to = {cls.owner_user['id_user']}
-                        ''')
-                    DB.connection.commit()
-                    print('Solicitação aceita!')
-                elif aceita == 2:
-                    DB.cursor.execute(f'''
-                        DELETE FROM
-                            rUser_User
-                        WHERE
-                            id_user_from = {solicitacoes[opcao - 1]['id_user']}
-                        AND
-                            id_user_to = {cls.owner_user['id_user']}
-                        AND
-                            status = 0
-                        ''')
-                    DB.connection.commit()
-                    print('Solicitação recusada.')
-        else:
-            print('Não há nenhuma solicitação para esse usuário.')
+                if not opcao:
+                    return
+                else:
+                    aceita = menu_opcoes('ACEITAR SOLICITAÇÃO?', [['Cancelar'], ['Aceitar'], ['Rejeitar']])
+
+                    if aceita == 1:
+                        DB.cursor.execute(f'''
+                            UPDATE
+                                rUser_User
+                            SET
+                                status = 1
+                            WHERE
+                                id_user_from = {solicitacoes[opcao - 1]['id_user']}
+                            AND
+                                id_user_to = {cls.owner_user['id_user']}
+                            ''')
+                        DB.connection.commit()
+                        print('Solicitação aceita!')
+                    elif aceita == 2:
+                        DB.cursor.execute(f'''
+                            DELETE FROM
+                                rUser_User
+                            WHERE
+                                id_user_from = {solicitacoes[opcao - 1]['id_user']}
+                            AND
+                                id_user_to = {cls.owner_user['id_user']}
+                            AND
+                                status = 0
+                            ''')
+                        DB.connection.commit()
+                        print('Solicitação recusada.')
+            else:
+                print('Não há nenhuma solicitação para esse usuário.')
+                return
 
     @classmethod
     def ver_mural(cls):
