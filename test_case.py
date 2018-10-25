@@ -314,12 +314,26 @@ def populate_tables():
     new_user_group(3, 1, 1)
     new_user_group(4, 1, 1)
 
-    new_post_group(2, 1, 'Samuel Post Sem Comment UFPB', 'no image')
-    new_post_group(3, 1, 'Manuela Post Com comment UFPB', 'no image')
-    new_comment(2, 2, 'Samuel Comment em Manuela Post')
-    new_comment(4, 2, 'Priscila Comment em Manuela Post')
-    new_reply(2, 2, 'Samuel Reply em Priscila Comment')
-    new_reply(3, 2, 'Manuela Reply em Priscila Comment')
+    new_post_group(3, 1, 'Manuela Post COM COMMENT UFPB', 'no image')
+    new_post_group(2, 1, 'Samuel Post SEM COMMENT UFPB', 'no image')
+    new_comment(4, 1, 'Priscila Comment em Manuela Post COM REPLY')
+    new_comment(2, 1, 'Samuel Comment em Manuela Post SEM REPLY')
+    new_reply(3, 1, 'Manuela Reply em Priscila Comment')
+    new_reply(2, 1, 'Samuel Reply em Priscila Comment')
+
+    new_post_user(3, 1, 'Manuela Post COM COMMENT em mural de Caio', 'no image')
+    new_post_user(2, 1, 'Samuel Post SEM COMMENT em mural de Caio', 'no image')
+    new_comment(4, 3, 'Priscila Comment em Manuela Post COM REPLY')
+    new_comment(2, 3, 'Samuel Comment em Manuela Post SEM REPLY')
+    new_reply(3, 3, 'Manuela Reply em Priscila Comment')
+    new_reply(2, 3, 'Samuel Reply em Priscila Comment')
+
+    new_post_user(3, 2, 'Manuela Post COM COMMENT em mural de Samuel', 'no image')
+    new_post_user(1, 2, 'Caio Post SEM COMMENT em mural de Samuel', 'no image')
+    new_comment(4, 5, 'Priscila Comment em Manuela Post COM REPLY')
+    new_comment(1, 5, 'Caio Comment em Manuela Post SEM REPLY')
+    new_reply(3, 5, 'Manuela Reply em Priscila Comment')
+    new_reply(1, 5, 'Caio Reply em Priscila Comment')
 
 
 drop_tables()
