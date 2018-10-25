@@ -71,7 +71,7 @@ class MenuPrincipal():
             if not opcao:
                 return
             else:
-                Perfil.interagir_com_usuario(usuarios[opcao - 1]['id_user'])
+                Perfil.menu_usuario(usuarios[opcao - 1])
                 return
 
     @classmethod

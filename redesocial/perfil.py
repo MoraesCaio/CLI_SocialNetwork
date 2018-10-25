@@ -200,158 +200,177 @@ class Perfil():
                 if not opcao:
                     return
                 else:
-                    cls.interagir_com_usuario(amigos[opcao - 1]['id_user'])
+                    cls.menu_usuario(amigos[opcao - 1])
             else:
                 print('Esse usuário não tem amigos.')
 
     @classmethod
-    def interagir_com_usuario(cls, id_interagido):
-        # Ver qual o relacionamento do usuário interagido com o usuário logado
+    def menu_usuario(cls, usuario):
+        while True:
+            # Ver qual o relacionamento do usuário interagido com o usuário logado
+            relacionamento = cls.get_relacionamento(usuario)
+
+            opcoes = [
+                ['Cancelar', None],
+                ['Visitar Perfil', None]
+            ]
+
+            if not cls.is_blocked(user=usuario['id_user']):
+                if not relacionamento:
+                    # Não existe relacionamento entre os usuários
+                    opcoes.append(['Solicitar Amizade', cls.solicitar_amizade])
+                else:
+                    # Já existe algum relacionamento entre os usuários
+                    if relacionamento['status'] == 0:
+                        opcoes.append(['Desfazer Solicitação de Amizade', cls.desfazer_solicitacao])
+                    elif relacionamento['status'] == 1:
+                        opcoes.append(['Desfazer Amizade', cls.desfazer_amizade])
+                    else:  # relacionamento['status'] == 2:
+                        opcoes.append(['Desbloquear', cls.desbloquear_usuario])
+
+            # Opção de bloquear não aparece se o usuário já está bloqueado
+            if (relacionamento and relacionamento['status'] != 2)\
+                    or (not relacionamento):
+                opcoes.append(['Bloquear', cls.bloquear])
+
+            opcao = menu_opcoes(f'''INTERAGIR COM USUÁRIO''', opcoes)
+            if not opcao:
+                return
+
+            if opcao != 0:
+                if opcao == 1:
+                    Perfil(usuario).ver_menu()
+                elif opcao > 1:
+                    opcoes[opcao][1](usuario)
+
+                    # Remover postagens, comentários e respostas do usuário bloqueado
+                    # TODO: consertar isso
+                    """DB.cursor.execute(f'''
+                        DELETE FROM
+                            tPost
+                        WHERE (
+                            id_user = {State.usuario_atual['id_user']}
+                        AND
+                            id_wall = {cls.owner_user['id_wall']}
+                        ) OR (
+                            id_user = {cls.owner_user['id_user']}
+                        AND
+                            id_wall = {State.usuario_atual['id_wall']}
+                        )
+                        ''')"""
+
+                    DB.connection.commit()
+                    print('Usuário bloqueado.')
+
+    @classmethod
+    def desfazer_solicitacao(cls, usuario):
         DB.cursor.execute(f'''
-            -- Lado esquerdo do relacionamento
-            SELECT
-                *
-            FROM
+            DELETE FROM
                 rUser_User
-            WHERE
-                (
-                    id_user_from = {id_interagido}
-                        AND
-                    id_user_to = {State.usuario_atual['id_user']}
-                )
-                OR
-                (
-                    id_user_to = {id_interagido}
-                        AND
-                    id_user_from = {State.usuario_atual['id_user']}
-                )
-            ''')
-        status_dos_usuarios = DB.cursor.fetchone()
+            WHERE (
+                id_user_from = {State.usuario_atual['id_user']}
+            AND
+                id_user_to = {usuario['id_user']}
+            )
+            OR (
+                 id_user_to = {State.usuario_atual['id_user']}
+            AND
+                id_user_from = {usuario['id_user']}
+            )
+        ''')
+        DB.connection.commit()
+        print('Solicitaçãp desfeita!')
 
-        if not status_dos_usuarios:
-            # Não existe relacionamento entre os usuários
-            opcao_de_amizade = 'Solicitar Amizade'
+    @classmethod
+    def solicitar_amizade(cls, usuario):
+        DB.cursor.execute(f'''
+            INSERT INTO
+                rUser_User(id_user_from, id_user_to, status)
+            VALUES
+                ({State.usuario_atual['id_user']}, {usuario['id_user']}, 0)
+        ''')
+        DB.connection.commit()
+        print('Amizade solicitada!')
+
+    @classmethod
+    def desfazer_amizade(cls, usuario):
+        DB.cursor.execute(f'''
+            DELETE FROM
+                rUser_User
+            WHERE (
+                id_user_from = {State.usuario_atual['id_user']}
+            AND
+                id_user_to = {usuario['id_user']}
+            )
+            OR (
+                 id_user_to = {State.usuario_atual['id_user']}
+            AND
+                id_user_from = {usuario['id_user']}
+            )
+        ''')
+        DB.connection.commit()
+        print('Amizade desfeita.')
+
+    @classmethod
+    def desbloquear_usuario(cls, usuario):
+        DB.cursor.execute(f'''
+            DELETE FROM
+                rUser_User
+            WHERE (
+                id_user_from = {State.usuario_atual['id_user']}
+            AND
+                id_user_to = {usuario['id_user']}
+            )
+            OR (
+                 id_user_to = {State.usuario_atual['id_user']}
+            AND
+                id_user_from = {usuario['id_user']}
+            )
+        ''')
+        DB.connection.commit()
+        print('Usuário desbloqueado.')
+
+    @classmethod
+    def bloquear(cls, usuario):
+        if cls.get_relacionamento(usuario):
+            cls.bloquear_conhecido(usuario)
         else:
-            # Já existe algum relacionamento entre os usuários
-            if status_dos_usuarios['status'] == 0:
-                opcao_de_amizade = 'Desfazer Solicitação de Amizade'
-            elif status_dos_usuarios['status'] == 1:
-                opcao_de_amizade = 'Desfazer Amizade'
-            elif status_dos_usuarios['status'] == 2:
-                opcao_de_amizade = 'Desbloquear'
+            cls.bloquear_desconhecido(usuario)
 
-        opcoes = [
-            ['Cancelar'],
-            ['Visitar Perfil']
-        ]
-
-        if not cls.is_blocked(user=id_interagido):
-            opcoes.append([opcao_de_amizade])
-
-        # Opção de bloquear não aparece se o usuário já está bloqueado
-        if (status_dos_usuarios and status_dos_usuarios['status'] != 2) or (
-                not status_dos_usuarios):
-            opcoes.append(['Bloquear'])
-
-        opcao_usuario = menu_opcoes(f'''INTERAGIR COM USUÁRIO''', opcoes)
-        if opcao_usuario != 0:
-            if opcao_usuario == 1:
-                Perfil(id_interagido).ver_menu()
-            elif opcao_usuario == 2:
-                if not status_dos_usuarios:
-                    # Solicitar amizade
-                    DB.cursor.execute(f'''
-                        INSERT INTO
-                            rUser_User(id_user_from, id_user_to, status)
-                        VALUES
-                            ({State.usuario_atual['id_user']}, {id_interagido}, 0)
-                    ''')
-                    DB.connection.commit()
-                    print('Amizade solicitada!')
-                elif status_dos_usuarios['status'] == 1:
-                    # Desfazer amizade
-                    DB.cursor.execute(f'''
-                        DELETE FROM
-                            rUser_User
-                        WHERE (
-                            id_user_from = {State.usuario_atual['id_user']}
-                        AND
-                            id_user_to = {id_interagido}
-                        )
-                        OR (
-                             id_user_to = {State.usuario_atual['id_user']}
-                        AND
-                            id_user_from = {id_interagido}
-                        )
-                    ''')
-                    DB.connection.commit()
-                    print('Amizade desfeita.')
-                else:
-                    # Desbloquear usuário
-                    DB.cursor.execute(f'''
-                        DELETE FROM
-                            rUser_User
-                        WHERE (
-                            id_user_from = {State.usuario_atual['id_user']}
-                        AND
-                            id_user_to = {id_interagido}
-                        )
-                        OR (
-                             id_user_to = {State.usuario_atual['id_user']}
-                        AND
-                            id_user_from = {id_interagido}
-                        )
-                    ''')
-                    DB.connection.commit()
-                    print('Usuário desbloqueado.')
-            elif opcao_usuario == 3:
-                if status_dos_usuarios:
-                    # Bloqueio quando os usuários já são amigos
-                    DB.cursor.execute(f'''
-                        UPDATE
-                            rUser_User
-                        SET
-                            status = 2,
-                            id_user_from = {State.usuario_atual['id_user']},
-                            id_user_to = {id_interagido}
-                        WHERE (
-                            id_user_from = {State.usuario_atual['id_user']}
-                        AND
-                            id_user_to = {id_interagido}
-                        )
-                        OR (
-                             id_user_to = {State.usuario_atual['id_user']}
-                        AND
-                            id_user_from = {id_interagido}
-                        )
-                        ''')
-                else:
-                    # Bloqueio quando não sao amigos
-                    DB.cursor.execute(f'''
-                    INSERT INTO
-                        rUser_User(id_user_from, id_user_to, status)
-                    VALUES
-                        ({State.usuario_atual['id_user']}, {id_interagido}, 2)
-                    ''')
-
-                # Remover postagens, comentários e respostas do usuário bloqueado
-                # TODO: consertar isso
-                """DB.cursor.execute(f'''
-                    DELETE FROM
-                        tPost
-                    WHERE (
-                        id_user = {State.usuario_atual['id_user']}
+    @classmethod
+    def bloquear_conhecido(cls, usuario):
+        DB.cursor.execute(f'''
+            UPDATE
+                rUser_User
+            SET
+                status = 2,
+                id_user_from = {State.usuario_atual['id_user']},
+                id_user_to = {usuario['id_user']}
+            WHERE
+            (
+                id_user_from = {State.usuario_atual['id_user']}
                     AND
-                        id_wall = {cls.owner_user['id_wall']}
-                    ) OR (
-                        id_user = {cls.owner_user['id_user']}
+                id_user_to = {usuario['id_user']}
+            )
+            OR
+            (
+                id_user_to = {State.usuario_atual['id_user']}
                     AND
-                        id_wall = {State.usuario_atual['id_wall']}
-                    )
-                    ''')"""
+                id_user_from = {usuario['id_user']}
+            )
+        ''')
+        print('Bloqueio realizado com sucesso.')
 
-                DB.connection.commit()
-                print('Usuário bloqueado.')
+    @classmethod
+    def bloquear_desconhecido(cls, usuario):
+        DB.cursor.execute(f'''
+        INSERT INTO
+            rUser_User(id_user_from, id_user_to, status)
+        VALUES
+            ({State.usuario_atual['id_user']}, {usuario['id_user']}, 2)
+        ''')
+        DB.connection.commit()
+        print('Bloqueio realizado com sucesso.')
 
     @classmethod
     def ver_grupos(cls):
@@ -780,3 +799,32 @@ class Perfil():
         ''')
         friends = DB.cursor.fetchall()
         return friends
+
+    @classmethod
+    def get_relacionamento(cls, usuario1, usuario2=None):
+        if type(usuario2) != dict:
+            usuario2 = State.usuario_atual
+
+        DB.cursor.execute(f'''
+            SELECT
+                *
+            FROM
+                rUser_User
+            WHERE
+                -- Lado esquerdo do relacionamento
+                (
+                    id_user_from = {usuario1['id_user']}
+                        AND
+                    id_user_to = {usuario2['id_user']}
+                )
+                OR
+                -- Lado direito do relacionamento
+                (
+                    id_user_to = {usuario1['id_user']}
+                        AND
+                    id_user_from = {usuario2['id_user']}
+                )
+            ''')
+
+        relacionamento = DB.cursor.fetchone()
+        return relacionamento

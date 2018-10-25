@@ -373,29 +373,29 @@ class Grupo():
 
             posts = DB.cursor.fetchall()
 
-            opcoes_mural = [
+            opcoes = [
                 ['Voltar ao menu principal'],
                 ['Criar postagem']
             ]
 
             for post in posts:
                 if not cls.is_blocked_either(State.usuario_atual['id_user'], post['id_user']):
-                    opcoes_mural.append([f'-> {post["name"]}: {post["text"]}'])
+                    opcoes.append([f'-> {post["name"]}: {post["text"]}'])
 
-            opcao_mural = menu_opcoes('POSTS', opcoes_mural)
+            opcao = menu_opcoes('POSTS', opcoes)
 
-            if not opcao_mural:
+            if not opcao:
                 return
 
-            elif opcao_mural == 1:
+            elif opcao == 1:
                 if cls.eh_membro():
                     Mural(cls.grupo['id_wall']).fazer_postagem()
                 else:
                     print('Você não faz parte desse grupo.')
 
-            elif opcao_mural > 1:
+            elif opcao > 1:
                 # interação com Post
-                cls.menu_post(posts[opcao_mural - 2])
+                cls.menu_post(posts[opcao - 2])
 
     @classmethod
     def menu_post(cls, post_interagido):
