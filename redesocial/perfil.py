@@ -154,45 +154,14 @@ class Perfil():
 
     @classmethod
     def ver_amigos(cls):
-        DB.cursor.execute(f'''
-            -- Os convites de amizade confirmados que essa pessoa fez
-            SELECT
-                tUser.id_user, tUser.name, tUser.city
-            FROM
-                rUser_User
-            INNER JOIN
-                tUser
-            ON
-                rUser_User.id_user_to = tUser.id_user
-            WHERE
-                status = 1
-            AND
-                id_user_from = {cls.owner_user['id_user']}
 
-            UNION
+        while True:
+            amigos = cls.get_amigos(cls.owner_user['id_user'])
 
-            -- Os convites de amizade que essa pessoa aceitou
-            SELECT
-                tUser.id_user, tUser.name, tUser.city
-            FROM
-                rUser_User
-            INNER JOIN
-                tUser
-            ON
-                rUser_User.id_user_from = tUser.id_user
-            WHERE
-                status = 1
-            AND
-                id_user_to = {cls.owner_user['id_user']}
-            ''')
-        amigos = DB.cursor.fetchall()
+            if amigos:
+                opcoes = [['Cancelar']]  # + [[f'''{amigo['name']}, de {amigo['city']}'''] for amigo in amigos]
 
-        if amigos:
-            opcoes = [['Cancelar']]  # + [[f'''{amigo['name']}, de {amigo['city']}'''] for amigo in amigos]
-
-            for amigo in amigos:
-                # Amigo só aparece se não tiver sido bloqueado pelo usuário logado.
-                if not cls.is_blocked_generic(State.usuario_atual['id_user'], amigo['id_user']):
+                for amigo in amigos:
                     # Checagem se são amigos mútuos só acontece em perfil de outras pessoas
                     if State.usuario_atual['id_user'] != cls.owner_user['id_user']:
                         DB.cursor.execute(f'''
@@ -203,22 +172,19 @@ class Perfil():
                             WHERE
                                 status = 1
                             AND
-                                id_user_from = {State.usuario_atual['id_user']}
-                            AND
-                                id_user_to = {amigo['id_user']}
-
-                            UNION
-
-                            SELECT
-                                status
-                            FROM
-                                rUser_User
-                            WHERE
-                                status = 1
-                            AND
-                                id_user_to = {State.usuario_atual['id_user']}
-                            AND
-                                id_user_from = {amigo['id_user']}
+                            (
+                                (
+                                    id_user_from = {State.usuario_atual['id_user']}
+                                        AND
+                                    id_user_to = {amigo['id_user']}
+                                )
+                                OR
+                                (
+                                    id_user_to = {State.usuario_atual['id_user']}
+                                        AND
+                                    id_user_from = {amigo['id_user']}
+                                )
+                            )
                             ''')
                         mutuo = True if DB.cursor.fetchone() else False
                     else:
@@ -229,11 +195,14 @@ class Perfil():
                     else:
                         opcoes.append([f'''{amigo['name']}, de {amigo['city']}'''])
 
-            opcao = menu_opcoes('AMIGOS', opcoes)
-            if opcao != 0:
-                cls.interagir_com_usuario(amigos[opcao - 1]['id_user'])
-        else:
-            print('Esse usuário não tem amigos.')
+                opcao = menu_opcoes('AMIGOS', opcoes)
+
+                if not opcao:
+                    return
+                else:
+                    cls.interagir_com_usuario(amigos[opcao - 1]['id_user'])
+            else:
+                print('Esse usuário não tem amigos.')
 
     @classmethod
     def interagir_com_usuario(cls, id_interagido):
@@ -245,21 +214,17 @@ class Perfil():
             FROM
                 rUser_User
             WHERE
-                id_user_from = {id_interagido}
-            AND
-                id_user_to = {State.usuario_atual['id_user']}
-            UNION
-
-            -- Lado direito do relacionamento
-            SELECT
-                *
-            FROM
-                rUser_User
-            WHERE
-                id_user_to = {id_interagido}
-            AND
-                id_user_from = {State.usuario_atual['id_user']}
-
+                (
+                    id_user_from = {id_interagido}
+                        AND
+                    id_user_to = {State.usuario_atual['id_user']}
+                )
+                OR
+                (
+                    id_user_to = {id_interagido}
+                        AND
+                    id_user_from = {State.usuario_atual['id_user']}
+                )
             ''')
         status_dos_usuarios = DB.cursor.fetchone()
 
@@ -505,136 +470,65 @@ class Perfil():
 
     @classmethod
     def ver_mural(cls):
-        DB.cursor.execute(f'''
-            SELECT
-                *
-            FROM
-                tPost
-            INNER JOIN
-                tUser
-            ON
-                tPost.id_user = tUser.id_user
-            WHERE
-                tPost.id_wall = {cls.owner_user['id_wall']}
-            ''')
-        posts = DB.cursor.fetchall()
+        while True:
+            DB.cursor.execute(f'''
+                SELECT
+                    *
+                FROM
+                    tPost
+                INNER JOIN
+                    tUser
+                ON
+                    tPost.id_user = tUser.id_user
+                WHERE
+                    tPost.id_wall = {cls.owner_user['id_wall']}
+                ''')
 
-        opcoes_postagem = [
-            ['Voltar ao menu principal'],
-            ['Criar postagem']
-        ]  # + [[f'-> {post["name"]}: {post["text"]}'] for post in posts]
-
-        for post in posts:
-            if not cls.is_blocked_either(State.usuario_atual['id_user'], post['id_user']):
-                opcoes_postagem.append([f'-> {post["name"]}: {post["text"]}'])
-
-        opcao_postagem = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes_postagem)
-
-        if opcao_postagem == 1:
-            Mural(cls.owner_user['id_wall']).fazer_postagem()
-        elif opcao_postagem > 1:
-            # Interagir com uma postagem
-            post_interagido = posts[opcao_postagem - 2]
+            posts = DB.cursor.fetchall()
 
             opcoes = [
                 ['Voltar ao menu principal'],
-                ['Ver comentários'],
+                ['Criar postagem']
             ]
-            if post_interagido['id_user'] == State.usuario_atual['id_user'] or cls.owner_user['id_user'] == State.usuario_atual['id_user']:
-                opcoes.append(['Remover postagem'])
 
-            opcao = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes)
+            for post in posts:
+                if not cls.is_blocked_either(State.usuario_atual['id_user'], post['id_user']):
+                    opcoes.append([f'-> {post["name"]}: {post["text"]}'])
 
-            if opcao == 1:
-                # Ver comentários
-                DB.cursor.execute(f'''
-                    SELECT
-                        *
-                    FROM
-                        tComment
-                    INNER JOIN
-                        tUser
-                    ON
-                        tComment.id_user = tUser.id_user
-                    WHERE
-                        tComment.id_post = {post_interagido['id_post']}
-                    ''')
-                comentarios = DB.cursor.fetchall()
+            opcao = menu_opcoes('POSTS', opcoes)
 
-                opcoes = [['Cancelar'], ['Comentar']]  # + [[f'-> {comentario["name"]}: {comentario["text"]}'] for comentario in comentarios]
+            if not opcao:
+                return
+            elif opcao == 1:
+                Mural(cls.owner_user['id_wall']).fazer_postagem()
+            elif opcao > 1:
+                # interação com Post
+                cls.menu_post(posts[opcao - 2])
 
-                for comentario in comentarios:
-                    if not cls.is_blocked_either(State.usuario_atual['id_user'], comentario['id_user']):
-                        opcoes_postagem.append([f'-> {comentario["name"]}: {comentario["text"]}'])
+    @classmethod
+    def menu_post(cls, post_interagido):
+        opcoes = [
+            ['Voltar ao menu principal'],
+            ['Ver imagem do post'],
+            ['Ver comentários'],
+        ]
 
-                opcao = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
+        if post_interagido['id_user'] == State.usuario_atual['id_user']:
+            opcoes.append(['Remover postagem'])
 
-                if opcao == 1:
-                    Mural(cls.owner_user['id_wall']).fazer_comentario(post_interagido['id_post'])
-                elif opcao > 1:
-                    # Interagir com comentário
-                    opcoes = [['Cancelar'], ['Ver respostas']]
+        while True:
+            opcao = menu_opcoes('MENU POST', opcoes)
 
-                    # Só quem fez o comentário ou o dono do perfil pode remove-lô
-                    if comentarios[opcao - 2]['id_user'] == State.usuario_atual['id_user'] or cls.owner_user['id_user'] == State.usuario_atual['id_user']:
-                        opcoes.append(['Remover comentário'])
+            if not opcao:
+                return
 
-                    opcao_comentario = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
-                    if opcao_comentario == 1:
-                        # Ver respostas
-                        DB.cursor.execute(f'''
-                            SELECT
-                                *
-                            FROM
-                                tReply
-                            INNER JOIN
-                                tUser
-                            ON
-                                tReply.id_user = tUser.id_user
-                            WHERE
-                                tReply.id_comment = {comentarios[opcao - 2]['id_comment']}
-                            ''')
-                        respostas = DB.cursor.fetchall()
-
-                        opcoes_resposta = [['Cancelar'], ['Responder']]  # + [[f'-> {resposta["name"]}: {resposta["text"]}'] for resposta in respostas]
-
-                        for resposta in respostas:
-                            if not cls.is_blocked_either(State.usuario_atual['id_user'], resposta['id_user']):
-                                opcoes_postagem.append([f'-> {resposta["name"]}: {resposta["text"]}'])
-
-                        opcao_resposta = menu_opcoes('INTERAGIR COM RESPOSTA', opcoes_resposta)
-
-                        if opcao_resposta == 1:
-                            Mural(cls.owner_user['id_wall']).fazer_resposta(comentarios[opcao - 2]['id_comment'])
-                        elif opcao_resposta > 1:
-                            # Interagir com resposta
-                            opcoes = [['Cancelar']]
-
-                            # Só quem postou a resposta ou o dono do perfil pode remover
-                            if respostas[opcao_resposta - 2]['id_user'] == State.usuario_atual['id_user'] or cls.owner_user['id_user'] == State.usuario_atual['id_user']:
-                                opcoes.append(['Remover resposta'])
-
-                            if menu_opcoes('INTERAGIR COM RESPOSTA', opcoes) == 1:
-                                DB.cursor.execute(f'''
-                                    DELETE FROM
-                                        tReply
-                                    WHERE
-                                        id_reply = {respostas[opcao_resposta - 2]['id_reply']}
-                                    ''')
-                                print('Resposta removida.')
-                                DB.connection.commit()
-                    elif opcao_comentario == 3:
-                        # Remover comentário
-                        DB.cursor.execute(f'''
-                            DELETE FROM
-                                tComment
-                            WHERE
-                                id_comment = {comentarios[opcao - 2]['id_comment']}
-                            ''')
-                        print('Comentário removido.')
-                        DB.connection.commit()
-
+            elif opcao == 1:
+                # Ver imagem do post
+                ver_imagem(post_interagido)
             elif opcao == 2:
+                # Ver comentários
+                cls.ver_comentarios(post_interagido)
+            elif opcao == 3:
                 # Remover postagem
                 DB.cursor.execute(f'''
                     DELETE FROM
@@ -642,7 +536,127 @@ class Perfil():
                     WHERE
                         id_post = {post_interagido['id_post']}
                     ''')
+                DB.connection.commit()
                 print('Postagem removida.')
+                return
+
+    @classmethod
+    def ver_comentarios(cls, post_interagido):
+        while True:
+            DB.cursor.execute(f'''
+                SELECT
+                    *
+                FROM
+                    tComment
+                INNER JOIN
+                    tUser
+                ON
+                    tComment.id_user = tUser.id_user
+                WHERE
+                    tComment.id_post = {post_interagido['id_post']}
+                ''')
+
+            comentarios = DB.cursor.fetchall()
+
+            opcoes = [['Cancelar'], ['Comentar']]
+
+            for comentario in comentarios:
+                if not cls.is_blocked_either(State.usuario_atual['id_user'], comentario['id_user']):
+                    opcoes.append([f'-> {comentario["name"]}: {comentario["text"]}'])
+
+            opcao = menu_opcoes('COMENTARIOS', opcoes)
+
+            if not opcao:
+                return
+
+            if opcao == 1:
+                Mural(cls.owner_user['id_wall']).fazer_comentario(post_interagido['id_post'])
+            elif opcao > 1:
+                cls.menu_comentario(comentarios[opcao - 2])
+
+    @classmethod
+    def menu_comentario(cls, comentario):
+
+        while True:
+            opcoes = [['Cancelar'], ['Ver respostas']]
+
+            # Só quem fez o comentário ou um administrador pode remove-lô
+            if comentario['id_user'] == State.usuario_atual['id_user']:
+                opcoes.append(['Remover comentário'])
+
+            opcao = menu_opcoes('MENU COMENTARIO', opcoes)
+
+            if not opcao:
+                return
+            elif opcao == 1:
+                # Ver respostas
+                cls.ver_respostas(comentario)
+            elif opcao == 3:
+                # Remover comentário
+                DB.cursor.execute(f'''
+                    DELETE FROM
+                        tComment
+                    WHERE
+                        id_comment = {comentario['id_comment']}
+                    ''')
+                print('Comentário removido.')
+                DB.connection.commit()
+
+    @classmethod
+    def ver_respostas(cls, comentario):
+        while True:
+            DB.cursor.execute(f'''
+                SELECT
+                    *
+                FROM
+                    tReply
+                INNER JOIN
+                    tUser
+                ON
+                    tReply.id_user = tUser.id_user
+                WHERE
+                    tReply.id_comment = {comentario['id_comment']}
+                ''')
+
+            respostas = DB.cursor.fetchall()
+
+            opcoes = [['Cancelar'], ['Responder']]
+
+            for resposta in respostas:
+                if not cls.is_blocked_either(State.usuario_atual['id_user'], resposta['id_user']):
+                    opcoes.append([f'-> {resposta["name"]}: {resposta["text"]}'])
+
+            opcao = menu_opcoes('RESPOSTAS', opcoes)
+
+            if not opcao:
+                return
+            elif opcao == 1:
+                Mural(cls.owner_user['id_wall']).fazer_resposta(comentario['id_comment'])
+            elif opcao > 1:
+                cls.menu_resposta(respostas[opcao - 2])
+
+    @classmethod
+    def menu_resposta(cls, resposta):
+        while True:
+            # Interagir com resposta
+            opcoes = [['Cancelar']]
+
+            # Só quem postou a resposta ou um administrador pode remover
+            if resposta['id_user'] == State.usuario_atual['id_user']:
+                opcoes.append(['Remover resposta'])
+
+            opcao = menu_opcoes('MENU RESPOSTA', opcoes)
+
+            if not opcao:
+                return
+            elif opcao == 1:
+                DB.cursor.execute(f'''
+                    DELETE FROM
+                        tReply
+                    WHERE
+                        id_reply = {resposta['id_reply']}
+                    ''')
+                print('Resposta removida.')
                 DB.connection.commit()
 
     @classmethod
@@ -711,10 +725,11 @@ class Perfil():
     @classmethod
     def get_amigos(cls, user_id):
         DB.cursor.execute(f'''
+
             -- Amigos
             -- Os convites de amizade confirmados que essa pessoa fez
             SELECT
-                tUser.id_user
+                tUser.id_user, tUser.name, tUser.city
             FROM
                 rUser_User
             INNER JOIN
@@ -725,11 +740,22 @@ class Perfil():
                 status = 1
             AND
                 id_user_from = {user_id}
+            AND
+                id_user NOT IN(
+                    SELECT
+                        id_user_from
+                    FROM
+                        rUser_User
+                    WHERE
+                        id_user_to = {State.usuario_atual['id_user']}
+                    AND
+                        status = 2
+                )
 
             -- Os convites de amizade que essa pessoa aceitou
             UNION
             SELECT
-                tUser.id_user
+                tUser.id_user, tUser.name, tUser.city
             FROM
                 rUser_User
             INNER JOIN
@@ -740,6 +766,17 @@ class Perfil():
                 status = 1
             AND
                 id_user_to = {user_id}
+            AND
+                id_user NOT IN(
+                    SELECT
+                        id_user_from
+                    FROM
+                        rUser_User
+                    WHERE
+                        id_user_to = {State.usuario_atual['id_user']}
+                    AND
+                        status = 2
+                )
         ''')
         friends = DB.cursor.fetchall()
         return friends
