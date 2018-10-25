@@ -30,14 +30,15 @@ class Grupo():
                 ['Ver foto', cls.ver_foto],
             ]
 
-            if not cls.eh_membro() and not cls.eh_bloqueado() and not cls.eh_solicitante():
+            if not cls.eh_solicitante() and not cls.eh_membro() and not cls.eh_bloqueado():
                 opcoes_grupo.append(['Solicitar Entrada', cls.solicitar_entrada])
             elif cls.eh_solicitante():
                 opcoes_grupo.append(['Cancelar Solicitação', cls.cancelar_solicitacao])
             # membro ou adm
-            elif cls.eh_membro():
+            elif cls.eh_visivel():
                 opcoes_grupo.append(['Ver Mural', cls.ver_mural])
                 opcoes_grupo.append(['Ver Membros', cls.ver_membros])
+            elif cls.eh_membro():
                 opcoes_grupo.append(['Sair do Grupo', cls.sair_grupo])
 
             if cls.eh_adm():
@@ -621,3 +622,10 @@ class Grupo():
             return True
         else:
             return False
+
+    @classmethod
+    def eh_visivel(cls):
+        if cls.eh_membro() or cls.grupo['visibility'] == 1:
+            return True
+        else:
+            False
