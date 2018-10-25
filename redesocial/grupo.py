@@ -187,52 +187,53 @@ class Grupo():
 
     @classmethod
     def ver_membros(cls):
-        DB.cursor.execute(f'''
-            SELECT
-                *
-            FROM
-                rUser_Group
-            INNER JOIN
-                tUser
-            ON
-                rUser_Group.id_user = tUser.id_user
-            WHERE
-                id_group = {cls.grupo['id_group']}
-            AND
-                (status != 0)
-            ''')
+        while True:
+            DB.cursor.execute(f'''
+                SELECT
+                    *
+                FROM
+                    rUser_Group
+                INNER JOIN
+                    tUser
+                ON
+                    rUser_Group.id_user = tUser.id_user
+                WHERE
+                    id_group = {cls.grupo['id_group']}
+                AND
+                    (status != 0)
+                ''')
 
-        membros = DB.cursor.fetchall()
-        opcoes = [['Cancelar']] + [[f'{membro["name"]}'] for membro in membros]
-        opcao = menu_opcoes('INTERAGIR COM MEMBRO', opcoes)
+            membros = DB.cursor.fetchall()
+            opcoes = [['Cancelar']] + [[f'{membro["name"]}'] for membro in membros]
+            opcao = menu_opcoes('INTERAGIR COM MEMBRO', opcoes)
 
-        if opcao != 0:
-            opcoes_membro = [['Cancelar'], ['Visitar Perfil']]
-            if cls.eh_adm():
+            if not opcao:
+                return
+
+            if opcao != 0:
+                opcoes_membro = [['Cancelar', None], ['Visitar Perfil', cls.visitar_perfil]]
+
                 # 1 = normal, 2 = admin, 3 = banido
-                status_do_membro = membros[opcao - 1]['status']
+                membro = membros[opcao - 1]
 
-                opcoes_membro.append(['Remover'])
+                if cls.eh_adm():
+                    opcoes_membro.append(['Remover', cls.remover_membro])
 
-                if status_do_membro == 3:
-                    opcoes_membro.append(['Desbanir'])
+                    if membro['status'] == 3:
+                        opcoes_membro.append(['Desbanir', cls.alternar_banimento])
+                    else:
+                        opcoes_membro.append(['Banir', cls.alternar_banimento])
+                        if membro['status'] == 1:
+                            opcoes_membro.append(['Tornar Administrador', cls.alternar_adm])
+                        elif membro['status'] == 2:
+                            opcoes_membro.append(['Tornar Usuário Normal', cls.alternar_adm])
+
+                opcao_membro = menu_opcoes('INTERAGIR COM MEMBRO', opcoes_membro)
+
+                if not opcao_membro:
+                    return
                 else:
-                    opcoes_membro.append(['Banir'])
-                    if status_do_membro == 1:
-                        opcoes_membro.append(['Tornar Administrador'])
-                    elif status_do_membro == 2:
-                        opcoes_membro.append(['Tornar Usuário Normal'])
-
-            opcao_membro = menu_opcoes('INTERAGIR COM MEMBRO', opcoes_membro)
-
-            if opcao_membro == 1:
-                cls.visitar_perfil(membros[opcao - 1])
-            elif opcao_membro == 2:
-                cls.remover_membro(membros[opcao - 1])
-            elif opcao_membro == 3:
-                cls.alternar_banimento(membros[opcao - 1], status_do_membro)
-            elif opcao_membro == 4:
-                cls.alternar_adm(membros[opcao - 1], status_do_membro)
+                    opcoes_membro[opcao_membro][1](membro)
 
     @classmethod
     def visitar_perfil(cls, membro):
@@ -253,10 +254,10 @@ class Grupo():
         print('Usuário removido do grupo.')
 
     @classmethod
-    def alternar_banimento(cls, membro, status_do_membro):
-        if status_do_membro == 3:
+    def alternar_banimento(cls, membro):
+        if membro['status'] == 3:
             novo_status = 1  # Desbanir
-        elif status_do_membro != 3:
+        elif membro['status'] != 3:
             novo_status = 3  # Banir
 
         DB.cursor.execute(f'''
@@ -274,11 +275,11 @@ class Grupo():
         print('Operação realizada.')
 
     @classmethod
-    def alternar_adm(cls, membro, status_do_membro):
+    def alternar_adm(cls, membro):
         # Dar / remover admin
-        if status_do_membro == 2:
+        if membro['status'] == 2:
             novo_status = 1  # Remover admin
-        elif status_do_membro == 1:
+        elif membro['status'] == 1:
             novo_status = 2  # Dar admin
 
         DB.cursor.execute(f'''
@@ -316,7 +317,10 @@ class Grupo():
             opcoes = [['Cancelar']] + [[f'{solicitacao["name"]}'] for solicitacao in solicitacoes]
             opcao = menu_opcoes('INTERAGIR COM SOLICITAÇÃO', opcoes)
 
-            if opcao != 0:
+            if not opcao:
+                return
+
+            else:
                 opcao_solicitacao = menu_opcoes(
                     'INTERAGIR COM SOLICITACAO',
                     [['Cancelar'], ['Aceitar'], ['Recusar']]
@@ -350,150 +354,73 @@ class Grupo():
                         ''')
                     DB.connection.commit()
                     print('Solicitação recusada.')
-            else:
-                return
 
     @classmethod
     def ver_mural(cls):
-        DB.cursor.execute(f'''
-            SELECT
-                *
-            FROM
-                tPost
-            INNER JOIN
-                tUser
-            ON
-                tPost.id_user = tUser.id_user
-            WHERE
-                tPost.id_wall = {cls.grupo['id_wall']}
-            ''')
-        posts = DB.cursor.fetchall()
+        while True:
+            DB.cursor.execute(f'''
+                SELECT
+                    *
+                FROM
+                    tPost
+                INNER JOIN
+                    tUser
+                ON
+                    tPost.id_user = tUser.id_user
+                WHERE
+                    tPost.id_wall = {cls.grupo['id_wall']}
+                ''')
 
-        opcoes_postagem = [
-            ['Voltar ao menu principal'],
-            ['Criar postagem']
-        ]  # + [[f'-> {post["name"]}: {post["text"]}'] for post in posts]
+            posts = DB.cursor.fetchall()
 
-        for post in posts:
-            if not cls.is_blocked_either(State.usuario_atual['id_user'], post['id_user']):
-                opcoes_postagem.append([f'-> {post["name"]}: {post["text"]}'])
-
-        opcao_postagem = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes_postagem)
-
-        if opcao_postagem == 1:
-            if cls.eh_membro():
-                Mural(cls.grupo['id_wall']).fazer_postagem()
-            else:
-                print('Você não faz parte desse grupo.')
-        elif opcao_postagem > 1:
-            # Interagir com uma postagem
-            post_interagido = posts[opcao_postagem - 2]
-
-            opcoes = [
+            opcoes_mural = [
                 ['Voltar ao menu principal'],
-                ['Ver comentários'],
+                ['Criar postagem']
             ]
-            if post_interagido['id_user'] == State.usuario_atual['id_user'] or cls.eh_adm():
-                opcoes.append(['Remover postagem'])
 
-            opcao = menu_opcoes('INTERAGIR COM POSTAGEM', opcoes)
+            for post in posts:
+                if not cls.is_blocked_either(State.usuario_atual['id_user'], post['id_user']):
+                    opcoes_mural.append([f'-> {post["name"]}: {post["text"]}'])
 
-            if opcao == 1:
-                # Ver comentários
-                DB.cursor.execute(f'''
-                    SELECT
-                        *
-                    FROM
-                        tComment
-                    INNER JOIN
-                        tUser
-                    ON
-                        tComment.id_user = tUser.id_user
-                    WHERE
-                        tComment.id_post = {post_interagido['id_post']}
-                    ''')
-                comentarios = DB.cursor.fetchall()
+            opcao_mural = menu_opcoes('POSTS', opcoes_mural)
 
-                opcoes = [['Cancelar'], ['Comentar']]  # + [[f'-> {comentario["name"]}: {comentario["text"]}'] for comentario in comentarios]
+            if not opcao_mural:
+                return
 
-                for comentario in comentarios:
-                    if not cls.is_blocked_either(State.usuario_atual['id_user'], comentario['id_user']):
-                        opcoes_postagem.append([f'-> {comentario["name"]}: {comentario["text"]}'])
+            elif opcao_mural == 1:
+                if cls.eh_membro():
+                    Mural(cls.grupo['id_wall']).fazer_postagem()
+                else:
+                    print('Você não faz parte desse grupo.')
 
-                opcao = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
+            elif opcao_mural > 1:
+                # interação com Post
+                cls.menu_post(posts[opcao_mural - 2])
 
-                if opcao == 1:
-                    if cls.eh_membro():
-                        Mural(cls.grupo['id_wall']).fazer_comentario(post_interagido['id_post'])
-                    else:
-                        print('Você não faz parte desse grupo.')
-                elif opcao > 1:
-                    # Interagir com comentário
-                    opcoes = [['Cancelar'], ['Ver respostas']]
+    @classmethod
+    def menu_post(cls, post_interagido):
+        opcoes = [
+            ['Voltar ao menu principal'],
+            ['Ver imagem do post'],
+            ['Ver comentários'],
+        ]
 
-                    # Só quem fez o comentário ou um administrador pode remove-lô
-                    if comentarios[opcao - 2]['id_user'] == State.usuario_atual['id_user'] or cls.eh_adm():
-                        opcoes.append(['Remover comentário'])
+        if post_interagido['id_user'] == State.usuario_atual['id_user'] or cls.eh_adm():
+            opcoes.append(['Remover postagem'])
 
-                    opcao_comentario = menu_opcoes('INTERAGIR COM COMENTARIO', opcoes)
-                    if opcao_comentario == 1:
-                        # Ver respostas
-                        DB.cursor.execute(f'''
-                            SELECT
-                                *
-                            FROM
-                                tReply
-                            INNER JOIN
-                                tUser
-                            ON
-                                tReply.id_user = tUser.id_user
-                            WHERE
-                                tReply.id_comment = {comentarios[opcao - 2]['id_comment']}
-                            ''')
-                        respostas = DB.cursor.fetchall()
+        while True:
+            opcao = menu_opcoes('MENU POST', opcoes)
 
-                        opcoes_resposta = [['Cancelar'], ['Responder']]  # + [[f'-> {resposta["name"]}: {resposta["text"]}'] for resposta in respostas]
+            if not opcao:
+                return
 
-                        for resposta in respostas:
-                            if not cls.is_blocked_either(State.usuario_atual['id_user'], resposta['id_user']):
-                                opcoes_postagem.append([f'-> {resposta["name"]}: {resposta["text"]}'])
-
-                        opcao_resposta = menu_opcoes('INTERAGIR COM RESPOSTA', opcoes_resposta)
-
-                        if opcao_resposta == 1:
-                            if cls.eh_membro():
-                                Mural(cls.grupo['id_wall']).fazer_resposta(comentarios[opcao - 2]['id_comment'])
-                            else:
-                                print('Você não faz parte desse grupo.')
-                        elif opcao_resposta > 1:
-                            # Interagir com resposta
-                            opcoes = [['Cancelar']]
-
-                            # Só quem postou a resposta ou um administrador pode remover
-                            if respostas[opcao_resposta - 2]['id_user'] == State.usuario_atual['id_user'] or cls.eh_adm():
-                                opcoes.append(['Remover resposta'])
-
-                            if menu_opcoes('INTERAGIR COM RESPOSTA', opcoes) == 1:
-                                DB.cursor.execute(f'''
-                                    DELETE FROM
-                                        tReply
-                                    WHERE
-                                        id_reply = {respostas[opcao_resposta - 2]['id_reply']}
-                                    ''')
-                                print('Resposta removida.')
-                                DB.connection.commit()
-                    elif opcao_comentario == 3:
-                        # Remover comentário
-                        DB.cursor.execute(f'''
-                            DELETE FROM
-                                tComment
-                            WHERE
-                                id_comment = {comentarios[opcao - 2]['id_comment']}
-                            ''')
-                        print('Comentário removido.')
-                        DB.connection.commit()
-
+            elif opcao == 1:
+                # Ver imagem do post
+                ver_imagem(post_interagido)
             elif opcao == 2:
+                # Ver comentários
+                cls.ver_comentarios(post_interagido)
+            elif opcao == 3:
                 # Remover postagem
                 DB.cursor.execute(f'''
                     DELETE FROM
@@ -503,6 +430,132 @@ class Grupo():
                     ''')
                 DB.connection.commit()
                 print('Postagem removida.')
+                return
+
+    @classmethod
+    def ver_comentarios(cls, post_interagido):
+        while True:
+            DB.cursor.execute(f'''
+                SELECT
+                    *
+                FROM
+                    tComment
+                INNER JOIN
+                    tUser
+                ON
+                    tComment.id_user = tUser.id_user
+                WHERE
+                    tComment.id_post = {post_interagido['id_post']}
+                ''')
+
+            comentarios = DB.cursor.fetchall()
+
+            opcoes = [['Cancelar'], ['Comentar']]
+
+            for comentario in comentarios:
+                if not cls.is_blocked_either(State.usuario_atual['id_user'], comentario['id_user']):
+                    opcoes.append([f'-> {comentario["name"]}: {comentario["text"]}'])
+
+            opcao = menu_opcoes('COMENTARIOS', opcoes)
+
+            if not opcao:
+                return
+
+            if opcao == 1:
+                if cls.eh_membro():
+                    Mural(cls.grupo['id_wall']).fazer_comentario(post_interagido['id_post'])
+                else:
+                    print('Você não faz parte desse grupo.')
+            elif opcao > 1:
+                cls.menu_comentario(comentarios[opcao - 2])
+
+    @classmethod
+    def menu_comentario(cls, comentario):
+
+        while True:
+            opcoes = [['Cancelar'], ['Ver respostas']]
+
+            # Só quem fez o comentário ou um administrador pode remove-lô
+            if comentario['id_user'] == State.usuario_atual['id_user'] or cls.eh_adm():
+                opcoes.append(['Remover comentário'])
+
+            opcao = menu_opcoes('MENU COMENTARIO', opcoes)
+
+            if not opcao:
+                return
+            elif opcao == 1:
+                # Ver respostas
+                cls.ver_respostas(comentario)
+            elif opcao == 3:
+                # Remover comentário
+                DB.cursor.execute(f'''
+                    DELETE FROM
+                        tComment
+                    WHERE
+                        id_comment = {comentario['id_comment']}
+                    ''')
+                print('Comentário removido.')
+                DB.connection.commit()
+
+    @classmethod
+    def ver_respostas(cls, comentario):
+        while True:
+            DB.cursor.execute(f'''
+                SELECT
+                    *
+                FROM
+                    tReply
+                INNER JOIN
+                    tUser
+                ON
+                    tReply.id_user = tUser.id_user
+                WHERE
+                    tReply.id_comment = {comentario['id_comment']}
+                ''')
+
+            respostas = DB.cursor.fetchall()
+
+            opcoes = [['Cancelar'], ['Responder']]
+
+            for resposta in respostas:
+                if not cls.is_blocked_either(State.usuario_atual['id_user'], resposta['id_user']):
+                    opcoes.append([f'-> {resposta["name"]}: {resposta["text"]}'])
+
+            opcao = menu_opcoes('RESPOSTAS', opcoes)
+
+            if not opcao:
+                return
+            elif opcao == 1:
+                if cls.eh_membro():
+                    Mural(cls.grupo['id_wall']).fazer_resposta(comentario['id_comment'])
+                else:
+                    print('Você não faz parte desse grupo.')
+            elif opcao > 1:
+                cls.menu_resposta(respostas[opcao - 2])
+
+    @classmethod
+    def menu_resposta(cls, resposta):
+        while True:
+            # Interagir com resposta
+            opcoes = [['Cancelar']]
+
+            # Só quem postou a resposta ou um administrador pode remover
+            if resposta['id_user'] == State.usuario_atual['id_user'] or cls.eh_adm():
+                opcoes.append(['Remover resposta'])
+
+            opcao = menu_opcoes('MENU RESPOSTA', opcoes)
+
+            if not opcao:
+                return
+            elif opcao == 1:
+                DB.cursor.execute(f'''
+                    DELETE FROM
+                        tReply
+                    WHERE
+                        id_reply = {resposta['id_reply']}
+                    ''')
+                print('Resposta removida.')
+                DB.connection.commit()
 
     @classmethod
     def checar_status(cls, status, user=None):
