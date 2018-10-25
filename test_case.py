@@ -245,6 +245,11 @@ def populate_tables():
     new_user_user(1, 2, 1)
     new_user_user(1, 3, 1)
     new_user_user(1, 4, 1)
+    new_user_user(2, 3, 1)
+    new_user_user(2, 4, 1)
+    new_user_user(3, 4, 1)
+    new_user_user(5, 2, 1)
+    new_user_user(2, 6, 1)
 
     new_user_group(1, 1, 2)
     new_user_group(2, 1, 1)
